@@ -1,0 +1,963 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Data Ninja — Level 1</title>
+<style>
+  button.ghost{
+    border:1px solid var(--divider); background:transparent; color:var(--ink);
+    padding:3px 8px; border-radius:6px; font-weight:600; opacity:.85;
+  }
+  button.ghost:hover{ opacity:1; border-color:var(--divider-strong); }
+
+  /* ---- 80s Ninja Cartoon Palette (black / red / greys) ---- */
+  :root{ /* DARK */
+    --bg:#0a0a0a; 
+    --panel:#141414; 
+    --panel-elev:#171717;    /* slightly elevated surfaces */
+    --ink:#f2f2f2; 
+    --ink-muted:#bdbdbd;
+    --editor-bg:#121212;
+    --editor-ink:#f1f1f1;
+    --console-bg:#0f0f0f;
+    --console-ink:#e6e6e6;
+    --question-bg:#2f3031;   /* your swatch */
+    --question-bg-light:#373839; /* a hair lighter for summary header contrast */
+
+    --accent:#ff2e2e; 
+    --accent-strong:#ff3f3f; 
+    --accent-soft:#ffd6d6;
+
+    --ok:#35d07f; 
+    --warn:#ffb86c; 
+    --grid:#1e1e1e;
+
+    --divider: rgba(255,46,46,.20);       /* softer dividers */
+    --divider-strong: rgba(255,46,46,.30);
+    --editor-bg:#121212;
+    --editor-ink:#eaeaea;
+    --console-bg:#0f0f0f;
+    --console-ink:#e6e6e6;
+  }
+
+  :root[data-theme="light"]{ /* LIGHT */
+    --bg:#f7f7f9; 
+    --panel:#ffffff; 
+    --panel-elev:#ffffff; 
+    --ink:#1b1b1f; 
+    --ink-muted:#5b5f6a;
+    --editor-bg:#ffffff;
+    --editor-ink:#1b1b1f;
+    --console-bg:#f7f7f9;
+    --console-ink:#1b1b1f;
+
+    --accent:#d10f26; 
+    --accent-strong:#e2182f; 
+    --accent-soft:#7b1020;
+
+    --ok:#198754; 
+    --warn:#b86b00; 
+    --grid:#e6e7ee;
+
+    --divider: rgba(0,0,0,.08);
+    --divider-strong: rgba(0,0,0,.14);
+    --editor-bg:#ffffff;
+    --editor-ink:#1b1b1f;
+    --console-bg:#fafafa;
+    --console-ink:#1b1b1f;
+    --question-bg:#e9eaee;          /* light grey for cards in light mode */
+    --question-bg-light:#f1f2f6;     /* slightly lighter for the summary bar */
+  }
+
+  .statBox{
+    padding:8px 10px;
+    border:1px solid var(--divider-strong);
+    background: var(--panel-elev);
+    color: var(--ink);
+    font-weight:800;
+    border-radius:6px;
+  }
+  .statBox.warn{
+    border-color: var(--warn);
+    color: var(--warn);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
+
+  header{position:sticky;top:0;z-index:1000;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:2px solid var(--divider-strong);background: var(--panel);box-shadow:0 4px 0 #000}
+  header strong{letter-spacing:.3px}
+  .pill{display:inline-block;font-size:12px;padding:3px 10px;border:2px solid var(--divider-strong);border-radius:4px;background:#1a1a1a;color:var(--divider-soft);font-weight:700}
+
+  main{display:grid;grid-template-columns:1fr;gap:12px;padding:12px}
+  .panel{background:var(--panel);border:1px solid var(--divider);border-radius:10px}
+  h2{margin:0 0 8px;color:var(--accent-soft);text-shadow:1px 1px #000;letter-spacing:.2px}
+
+  label{font-size:12px;color:var(--muted)}
+  code{color:var(--accent-soft)}
+
+  button{background:#1f1f1f;color:var(--accent-soft);border:2px solid var(--accent);border-radius:6px;padding:6px 10px;font-weight:700;cursor:pointer}
+  button.primary{background:var(--accent-strong);color:#110505;border-color:var(--accent-strong)}
+  button:disabled{opacity:.6;cursor:not-allowed}
+
+  textarea{
+    width:100%;
+    min-height:80px;
+    background:var(--editor-bg);
+    color:var(--editor-ink);
+    border:1px solid var(--divider);
+    border-radius:6px;
+    padding:8px;
+    font-family:Consolas,ui-monospace,monospace;
+  }
+
+  /* Console output only (was global pre{}) */
+  pre[id^="out-"]{
+    background:var(--console-bg);
+    color:var(--console-ink);
+    border:1px solid var(--divider);
+    border-radius:6px;
+    padding:8px;
+    min-height:120px;
+    white-space:pre-wrap;
+  }
+
+
+  .missionCard{
+    background: var(--question-bg);
+    border:1px solid var(--divider);
+    border-radius:10px;
+    padding:0;                      /* let summary be the header bar */
+    overflow:hidden;                /* keep rounded corners clean */
+  }
+
+  .missionCard > summary{
+    list-style:none;
+    cursor:pointer;
+    font-weight:800;
+    color:var(--accent-soft);
+    background: var(--question-bg-light);
+    padding:12px 12px;
+    border-bottom:1px solid var(--divider);
+  }
+  /* Triangle reset since we removed list-style */
+  .missionCard > summary::-webkit-details-marker{ display:none; }
+
+  /* Content area inside each card */
+  .missionCard > *:not(summary){
+    padding:12px;
+  }
+
+  /* Keep the “done” state border you already had */
+  .missionCard.done{ border-color: var(--ok); }
+  .missionCard.done{border-color:var(--ok)}
+  details>summary{cursor:pointer;font-weight:800;color:var(--accent-soft)}
+
+  .score{font-weight:800}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .plot{
+    display:none; border:1px dashed color-mix(in oklab, white 12%, transparent);
+    border-radius:6px; margin-top:6px; max-width:100%;
+  }
+  :root[data-theme="light"] .plot{
+    border-color: color-mix(in oklab, black 18%, transparent);
+  }
+  .fx-layer{position:fixed;pointer-events:none;inset:0;z-index:30}
+  .fx{position:absolute;width:12px;height:12px;background:linear-gradient(45deg,#fff,#ffd7d7);box-shadow:0 0 6px #ffb2b2aa;border-radius:2px;opacity:.95;animation:burst 1.2s ease-out forwards}
+  .fx.ninja{width:14px;height:14px;background:#ff9b9b;border-radius:3px}
+  @keyframes burst{from{transform:translateY(0) scale(1)}to{transform:translateY(-140px) translateX(calc(-60px + 120px*var(--r))) scale(.8);opacity:0}}
+
+  #certModal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;z-index:1000}
+  #certBox{width:min(720px,90vw);background:#111;border:3px solid var(--accent);box-shadow:0 20px 60px #000a;border-radius:10px;padding:16px}
+  #certTitle{margin:0 0 8px;color:var(--accent-soft)}
+  #certBody{color:#e9eefb}
+  #nameRow input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #2a2a2a;background:#151515;color:#e9eefb}
+
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:linear-gradient(90deg,transparent 31px,var(--grid) 32px),linear-gradient(transparent 31px,var(--grid) 32px);background-size:32px 32px,32px 32px;opacity:.25}
+
+  #welcomeOverlay{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center}
+  #welcomeBox{width:min(760px,92vw);border:3px solid var(--accent-strong);border-radius:12px;padding:20px;background:#141414;box-shadow:0 30px 80px #000;text-align:center}
+  #welcomeBox h1{margin:0 0 6px;color:var(--accent-soft);font-size:28px;text-shadow:2px 2px #000}
+  #welcomeBox p{margin:8px 0;color:#f3f3f3;line-height:1.5}
+  #welcomeActions{margin-top:12px}
+  /* CodeMirror look */
+  .CodeMirror{ height:auto; min-height:120px; border:1px solid var(--divider); border-radius:8px; font-size:14px; }
+  .cm-s-material-darker{ background:#121212; color:#eaeaea; }
+  .cm-s-neo{ background:#ffffff; }
+  .cm-fat-cursor .CodeMirror-cursor{ width:2px; }
+
+  /* CodeMirror – tighter, VS Code-ish */
+  .CodeMirror{
+    font-size:13px;           /* slightly smaller */
+    line-height:1.35;         /* tighter lines */
+    border:1px solid var(--divider);
+    border-radius:8px;
+  }
+
+  .CodeMirror pre{
+    line-height:1.35;
+  }
+
+  /* Make cursor thin, not fat */
+  .CodeMirror-cursor{
+    border-left:1px solid currentColor !important;
+    width:0 !important;
+  }
+
+  /* Dark theme: material-darker; Light theme: neo */
+  .cm-s-material-darker{
+    background: var(--editor-bg) !important;
+    color: var(--editor-ink) !important;
+  }
+
+  .cm-s-neo{
+    background: var(--editor-bg) !important;
+    color: var(--editor-ink) !important;
+  }
+
+  /* Gutter + selection subtle */
+  .CodeMirror-lines{ padding:6px 0 !important; }
+  .CodeMirror-gutters{ padding:6px 0 !important; }
+  .CodeMirror-selected{
+    background: color-mix(in oklab, var(--accent) 22%, transparent) !important;
+  }
+  /* Tighter line height in the editor + matching gutter numbers */
+  .cm-s-material-darker .CodeMirror-line,
+  .cm-s-material-darker .CodeMirror pre,
+  .cm-s-neo .CodeMirror-line,
+  .cm-s-neo .CodeMirror pre,
+  .CodeMirror-linenumber {
+    line-height: 1.22 !important;   /* try 1.18–1.28 to taste */
+  }
+
+  /* Trim the left/right padding inside each line */
+  .CodeMirror pre.CodeMirror-line,
+  .CodeMirror pre.CodeMirror-line-like {
+    padding: 0 6px !important;
+  }
+
+  /* Prevent tall gutter boxes from forcing extra height */
+  .CodeMirror-gutter-elt {
+    height: auto !important;
+  }
+
+  .CodeMirror pre {
+    min-height: 0 !important;
+    white-space: pre !important;
+    margin: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Tighten line height + gutters */
+  .CodeMirror-code{ line-height:1.20 !important; }
+  .cm-s-material-darker .CodeMirror-line,
+  .cm-s-material-darker .CodeMirror pre,
+  .cm-s-neo .CodeMirror-line,
+  .cm-s-neo .CodeMirror pre{
+    line-height:1.20 !important;
+  }
+  .CodeMirror-linenumber{ line-height:1.20 !important; padding:0 6px !important; }
+  .CodeMirror-gutter-elt{ height:auto !important; }
+
+  /* 4) Slim cursor (optional, keeps the caret thin) */
+  .CodeMirror-cursor { border-left: 1px solid currentColor !important; width: 0 !important; }
+
+  /* 5) Scope your wrapping to ONLY the console <pre> elements */
+  pre[id^="out-"] { white-space: pre-wrap; }   /* your output boxes */
+  .CodeMirror { font-size: 12.5px !important; }
+  .missionHeader{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    margin-bottom:6px;
+  }
+
+  .missionText{
+    flex:1;
+    font-size:14px;
+    color:var(--ink);
+  }
+
+  .missionActions button{
+    margin-left:6px;
+  }
+  .nbOut{
+    display:none;
+    overflow:auto;
+    border:1px solid var(--divider);
+    border-radius:8px;
+    background: var(--panel-elev);
+    padding:10px;
+    margin-top:8px;
+  }
+
+  /* Pandas HTML table polish */
+  .nbOut table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  .nbOut th,
+  .nbOut td{
+    padding:6px 8px;
+    border-bottom:1px solid color-mix(in oklab, var(--ink) 10%, transparent);
+  }
+  .nbOut thead th{
+    position:sticky; top:0;
+    background: color-mix(in oklab, var(--panel) 88%, black 12%);
+    text-align:left;
+    font-weight:700;
+  }
+  :root[data-theme="light"] .nbOut thead th{
+    background: color-mix(in oklab, var(--panel) 96%, white 4%);
+  }
+  .nbOut tr:hover td{
+    background: color-mix(in oklab, var(--accent) 6%, transparent);
+  }
+  /* Notebook-style output box */
+  .nb-output{
+    display:none;                      /* stays hidden unless there is output */
+    background: var(--panel-elev);
+    border: 1px solid var(--divider);
+    border-radius: 8px;
+    padding: 10px 12px;
+    overflow:auto;
+    margin-top:10px;
+  }
+
+  /* Pandas HTML table polish */
+  .nb-output table{ width:100%; border-collapse:collapse; font-size:13px; }
+  .nb-output thead th{
+    text-align:left; padding:8px 10px;
+    background: color-mix(in oklab, var(--editor-bg) 85%, black 15%);
+    border-bottom:1px solid var(--divider);
+  }
+  .nb-output tbody td{ padding:8px 10px; border-bottom:1px solid var(--divider); }
+  .nb-output tbody tr:hover{
+    background: color-mix(in oklab, var(--editor-bg) 92%, black 8%);
+  }
+
+  /* (optional) make m1 editor slightly shorter */
+  #card-m1 .CodeMirror{ min-height:96px !important; }
+  :root{
+    /* Adjust if your header gets taller/shorter */
+    --header-offset: 64px;
+  }
+
+  /* Keep the Status card visible as you scroll */
+  #student-panel{
+    position: sticky;
+    top: var(--header-offset);
+    z-index: 800;                 /* sit above page content */
+  }
+  .docLinks{
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .docLinks a{
+    text-decoration: none;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--divider-strong);
+    background: var(--panel-elev);
+    color: var(--ink);
+  }
+
+  .docLinks a:hover{
+    border-color: var(--accent);
+    color: var(--accent-soft);
+  }
+  .status-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+  }
+
+  .docLinks {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .docLinks a {
+    text-decoration: none;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--divider-strong);
+    background: var(--panel-elev);
+    color: var(--ink);
+  }
+  .docLinks a:hover {
+    border-color: var(--accent);
+    color: var(--accent-soft);
+  }
+
+</style>
+  <link rel="stylesheet" href="https://unpkg.com/codemirror@5.65.16/lib/codemirror.css">
+  <link rel="stylesheet" href="https://unpkg.com/codemirror@5.65.16/theme/material-darker.css">
+  <link rel="stylesheet" href="https://unpkg.com/codemirror@5.65.16/theme/neo.css">
+  <link rel="stylesheet" href="https://unpkg.com/codemirror@5.65.16/addon/hint/show-hint.css">
+  <script src="https://unpkg.com/codemirror@5.65.16/lib/codemirror.js"></script>
+  <script src="https://unpkg.com/codemirror@5.65.16/mode/python/python.js"></script>
+  <script src="https://unpkg.com/codemirror@5.65.16/addon/edit/matchbrackets.js"></script>
+  <script src="https://unpkg.com/codemirror@5.65.16/addon/hint/show-hint.js"></script>
+</head>
+<body>
+<header>
+  <div>🥷 <strong>Data Ninja — Level 1</strong></div>
+  <div class="pill" id="status">Loading Python…</div>
+  <div class="pill">v3.6 (80s ninja)</div>
+</header>
+
+<div id="welcomeOverlay">
+  <div id="welcomeBox" class="panel">
+    <h1>🎌 Welcome, Data Ninja Trainee!</h1>
+    <p>You have <strong>20 minutes</strong> to complete five stealthy missions using official scrolls (docs) and your mind.<br><strong>No LLMs</strong> today — even the wise ChatGPT scroll is sealed.</p>
+    <p>If the timer runs out, you’ll earn an <em>Incomplete Training Scroll</em>. If you press <strong>Reset</strong>, your progress will vanish into the night.</p>
+    <p style="font-size:12px;color:var(--muted)">Tip: pandas & matplotlib documentation are fair game. Honor code applies. 🥷</p>
+    <div id="welcomeActions"><button id="dismissWelcome" class="primary">Begin Training ▶</button></div>
+  </div>
+</div>
+
+<main>
+  <!-- STATUS / TIMER -->
+  <section class="panel" id="student-panel">
+    <h2>
+      Status
+      <button id="themeToggle" class="ghost" style="margin-left:8px">Light mode</button>
+    </h2>
+
+    <div class="row">
+      <div style="flex:1">
+        <label>Score</label>
+        <div class="statBox">
+          <span id="scoreNow" class="score">0</span>/<span class="score" id="scoreMax">14</span>
+        </div>
+      </div>
+      <div style="flex:1">
+        <label>Timer</label>
+        <div class="statBox warn">
+          <span id="timer">20:00</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:8px;font-size:12px;color:var(--muted)">
+      Dataset path inside Python: <code>/tmp/mystic_coffee_sales.csv</code>
+    </div>
+
+    <!-- Reset + docs row -->
+    <div class="status-actions">
+      <button id="resetBtn" class="warn">Reset — You will lose all progress!</button>
+      <div class="docLinks" aria-label="Reference documentation">
+        <a href="https://pandas.pydata.org/docs/" target="_blank" rel="noopener">pandas docs</a>
+        <a href="https://matplotlib.org/stable/" target="_blank" rel="noopener">matplotlib docs</a>
+        <a href="https://docs.python.org/3/" target="_blank" rel="noopener">python docs</a>
+        <a href="https://numpy.org/doc/stable/" target="_blank" rel="noopener">NumPy docs</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+
+
+  <!-- MISSIONS -->
+  <section class="panel">
+    <h2>MISSIONS</h2>
+
+    <details class="missionCard" id="card-m1" open>
+      <summary>1) Load the CSV <span class="pill" id="pill-m1">In progress</span></summary>
+      <div class="missionHeader">
+        <div class="missionText">Read the CSV into a DataFrame named <code>df</code> and print a preview.</div>
+        <div class="missionActions">
+          <button class="primary" data-run="m1">Run ▶</button>
+          <button data-check="m1">Check ✅</button>
+        </div>
+      </div>
+      <textarea id="code-m1"></textarea>
+      <div id="nb-m1" class="nb-output" style="display:none"></div>
+      <div id="nb-m1" class="nbOut"></div>
+      <img id="plot-m1" class="plot" alt="plot m1"/>
+    </details>
+
+    <details class="missionCard" id="card-m2">
+      <summary>2) Parse dates <span class="pill" id="pill-m2">Locked</span></summary>
+      <div class="missionHeader">
+        <div class="missionText">Convert column <code>date</code> to datetime in <code>df</code>.</div>
+        <div class="missionActions">
+          <button class="primary" data-run="m2">Run ▶</button>
+          <button data-check="m2">Check ✅</button>
+        </div>
+      </div>
+      <textarea id="code-m2"></textarea>
+      <div id="nb-m2" class="nb-output" style="display:none"></div>
+      <img id="plot-m2" class="plot" alt="plot m2"/>
+    </details>
+
+    <details class="missionCard" id="card-m3">
+      <summary>3) Create month feature <span class="pill" id="pill-m3">Locked</span></summary>
+      <div class="missionHeader">
+        <div class="missionText">Create <code>df['month']</code> from <code>df['date']</code> using monthly periods.</div>
+        <div class="missionActions">
+          <button class="primary" data-run="m3">Run ▶</button>
+          <button data-check="m3">Check ✅</button>
+        </div>
+      </div>
+      <textarea id="code-m3"></textarea>
+      <div id="nb-m3" class="nb-output" style="display:none"></div>
+      <img id="plot-m3" class="plot" alt="plot m3"/>
+    </details>
+
+    <details class="missionCard" id="card-m4">
+      <summary>4) Group totals <span class="pill" id="pill-m4">Locked</span></summary>
+      <div class="missionHeader">
+        <div class="missionText">Compute total revenue by drink in a variable <code>totals</code>.</div>
+        <div class="missionActions">
+          <button class="primary" data-run="m4">Run ▶</button>
+          <button data-check="m4">Check ✅</button>
+        </div>
+      </div>
+      <textarea id="code-m4"></textarea>
+      <div id="nb-m4" class="nb-output" style="display:none"></div>
+      <img id="plot-m4" class="plot" alt="plot m4"/>
+    </details>
+
+    <details class="missionCard" id="card-m5">
+      <summary>5) Plot top-5 <span class="pill" id="pill-m5">Locked</span></summary>
+      <div class="missionHeader">
+        <div class="missionText">Plot the top 5 drinks by revenue (matplotlib) and call <code>plt.show()</code>.</div>
+        <div class="missionActions">
+          <button class="primary" data-run="m5">Run ▶</button>
+          <button data-check="m5">Check ✅</button>
+        </div>
+      </div>
+      <textarea id="code-m5"></textarea>
+      <div id="nb-m5" class="nb-output" style="display:none"></div>
+      <img id="plot-m5" class="plot" alt="plot m5"/>
+    </details>
+
+  </section>
+</main>
+
+<div class="fx-layer" id="fx-layer"></div>
+
+<div id="certModal">
+  <div id="certBox" class="panel">
+    <h2 id="certTitle">Data Ninja Certificate</h2>
+    <div id="certBody" style="margin-bottom:10px;line-height:1.5"></div>
+    <div class="row" id="nameRow">
+      <div style="flex:1"><label>Your Name</label><input id="playerName" placeholder="Enter your ninja name"/></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="downloadSubmitBtn" class="primary">Download Submission</button>
+      <button id="closeCertBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  const welcomeOverlay=document.getElementById('welcomeOverlay');
+  const dismissWelcome=document.getElementById('dismissWelcome');
+  // THEME TOGGLE (text label swaps between "Light mode" and "Dark mode")
+  const themeToggle = document.getElementById('themeToggle');
+  const root = document.documentElement;
+  // --- CodeMirror editors ---
+  const editors = {}; // id -> CodeMirror instance
+
+  function initEditors(){
+    ['m1','m2','m3','m4','m5'].forEach(id=>{
+      const ta = document.getElementById(`code-${id}`);
+      if (!ta) return;
+      const cm = CodeMirror.fromTextArea(ta, {
+        mode:'python',
+        theme:(document.documentElement.getAttribute('data-theme')==='light'?'neo':'material-darker'),
+        lineNumbers:true, matchBrackets:true, indentUnit:4, tabSize:4, indentWithTabs:false,
+        autofocus: id==='m1'
+      });
+      cm.setSize('100%','120px');
+      editors[id] = cm;
+    });
+  }
+  function getCode(id){ return editors[id] ? editors[id].getValue() : (document.getElementById(`code-${id}`)?.value || ''); }
+  function setEditorTheme(mode){
+    const theme = (mode==='light') ? 'neo' : 'material-darker';
+    Object.values(editors).forEach(cm=>cm.setOption('theme', theme));
+  }
+  requestAnimationFrame(initEditors);
+  function applyTheme(mode){
+    root.setAttribute('data-theme', mode);
+    // Button label: show the OTHER mode as the action
+    if (themeToggle) themeToggle.textContent = (mode === 'light') ? 'Dark mode' : 'Light mode';
+    // Keep CodeMirror in sync
+    if (typeof setEditorTheme === 'function') setEditorTheme(mode);
+  }
+  // Initial theme (respects OS, defaults to dark)
+  const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  applyTheme(prefersLight ? 'light' : 'dark');
+
+  if (themeToggle){
+    themeToggle.addEventListener('click', ()=>{
+      const next = (root.getAttribute('data-theme') === 'light') ? 'dark' : 'light';
+      applyTheme(next);
+    });
+  }
+
+  if(dismissWelcome){
+    dismissWelcome.addEventListener('click',()=>{
+      welcomeOverlay.style.display='none';
+      // Start timer and pyodide bootstrap here, restored from full V1
+    });
+  }
+
+  const statusEl = document.getElementById('status');
+  const scoreNow = document.getElementById('scoreNow');
+  const scoreMax = document.getElementById('scoreMax');
+  const timerEl  = document.getElementById('timer');
+  const certModal = document.getElementById('certModal');
+  const certTitle = document.getElementById('certTitle');
+  const certBody  = document.getElementById('certBody');
+  const playerNameEl = document.getElementById('playerName');
+  const downloadSubmitBtn = document.getElementById('downloadSubmitBtn');
+  const closeCertBtn = document.getElementById('closeCertBtn');
+
+  const ORDER  = ['m1','m2','m3','m4','m5'];
+  const POINTS = {m1:2,m2:3,m3:3,m4:3,m5:3};
+  scoreMax.textContent = ORDER.reduce((s,k)=>s+POINTS[k],0);
+
+  // Timer — 1 minute
+  const DURATION_MS = 20 * 60 * 1000;
+  let startTs = Date.now();
+  let finished=false, expired=false, ticker;
+
+  function startTimer(){
+  if (ticker) clearInterval(ticker);
+  startTs = Date.now();
+  ticker = setInterval(()=>{
+    const remain = Math.max(0, DURATION_MS - (Date.now() - startTs));
+    const s  = Math.floor(remain/1000);
+    const mm = String(Math.floor(s/60)).padStart(2,'0');
+    const ss = String(s%60).padStart(2,'0');
+    if (timerEl) timerEl.textContent = `${mm}:${ss}`;
+    if (remain === 0 && !finished){
+      clearInterval(ticker);
+      expired = true;
+      showCertificate(false);
+    }
+  }, 250);
+}
+
+
+  // Pyodide bootstrap
+  let pyodide=null, pythonReady=false;
+  (async()=>{
+    try{
+      statusEl.textContent='Downloading Pyodide…';
+      const { loadPyodide } = await import('https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.mjs');
+      pyodide = await loadPyodide({ indexURL:'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/' });
+      statusEl.textContent='Loading packages (pandas, matplotlib)…';
+      await pyodide.loadPackage(['pandas','matplotlib']);
+      await pyodide.runPythonAsync(`
+import io, base64
+import matplotlib
+matplotlib.use('AGG')
+import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
+def _bridge_show(*a, **k):
+    buf = io.BytesIO(); plt.savefig(buf, format='png', bbox_inches='tight')
+    b64 = base64.b64encode(buf.getvalue()).decode('ascii')
+    globals()['_last_plot_png_'] = b64
+    globals()['_plotted_'] = True
+    try:
+        labels = [t.get_text() for t in plt.gca().get_xticklabels() if t.get_text()]
+        globals()['_last_xticks_'] = labels
+    except Exception:
+        globals()['_last_xticks_'] = []
+    plt.close('all')
+plt.show = _bridge_show
+globals()['_last_html_'] = ''  # buffer
+def display(obj):
+    try:
+        if hasattr(obj, 'to_html'):
+            html = obj.to_html(border=0)
+        else:
+            html = str(obj)
+    except Exception:
+        html = str(obj)
+    globals()['_last_html_'] = html
+      `);
+
+      const CSV_TEXT =
+        "date,drink,qty,price,revenue,shop\n"+
+        "2025-01-02,Latte,32,4.25,136,Downtown\n"+
+        "2025-01-03,Mocha,20,4.75,95,Campus\n"+
+        "2025-01-03,Cold Brew,18,4.00,72,Airport\n"+
+        "2025-02-12,Latte,40,4.25,170,Campus\n"+
+        "2025-02-13,Espresso,55,3.00,165,Downtown\n"+
+        "2025-02-14,Cold Brew,60,4.00,240,Downtown\n"+
+        "2025-03-01,Latte,28,4.25,119,Airport\n"+
+        "2025-03-02,Mocha,42,4.75,199.5,Airport\n"+
+        "2025-03-06,Americano,70,3.50,245,Campus\n"+
+        "2025-03-21,Cappuccino,34,4.25,144.5,Downtown\n";
+      pyodide.FS.writeFile('/tmp/mystic_coffee_sales.csv', new TextEncoder().encode(CSV_TEXT));
+
+      pythonReady=true; statusEl.textContent='Python ready ✔';
+
+      // start timer
+      startTs = Date.now();
+      ticker = setInterval(()=>{
+        const remain = Math.max(0, DURATION_MS - (Date.now()-startTs));
+        const s  = Math.floor(remain/1000);
+        const mm = String(Math.floor(s/60)).padStart(2,'0');
+        const ss = String(s%60).padStart(2,'0');
+        if (timerEl) timerEl.textContent = `${mm}:${ss}`;
+        if (remain===0 && !finished){
+          clearInterval(ticker); expired = true; showCertificate(false);
+        }
+      },250);
+    }catch(e){
+      console.error(e); statusEl.textContent='Load error';
+      alert('Failed to load Python runtime. See console.');
+    }
+  })();
+
+  // Small helpers
+  const el = id=>document.getElementById(id);
+  const pill = id=>el('pill-'+id);
+  const card = id=>el('card-'+id);
+
+  // FX burst
+  function celebrateFx(){
+    const layer = el('fx-layer'); if(!layer) return;
+    const count = 18;
+    for(let i=0;i<count;i++){
+      const d = document.createElement('div');
+      d.className = 'fx'+(Math.random()>.7?' ninja':'');
+      d.style.left = (Math.random()*window.innerWidth)+'px';
+      d.style.top  = (window.innerHeight-24)+'px';
+      d.style.setProperty('--r', String(Math.random()));
+      layer.appendChild(d);
+      const clean=()=>d.remove();
+      d.addEventListener('animationend', clean);
+      setTimeout(clean, 1500);
+    }
+  }
+
+  // Wire each mission (notebook-style output only)
+  function wireMission(id){
+    const runBtn   = document.querySelector(`[data-run="${id}"]`);
+    const checkBtn = document.querySelector(`[data-check="${id}"]`);
+
+    const plot = document.getElementById(`plot-${id}`);   // <img> for matplotlib
+    const nb   = document.getElementById(`nb-${id}`);     // notebook output div
+    const out  = document.getElementById(`out-${id}`);    // legacy console (hide)
+
+    if (out) out.style.display = 'none';
+
+    runBtn.addEventListener('click', async () => {
+      if (!pythonReady) return;
+
+      // Clear visuals
+      if (nb){ nb.innerHTML = ''; nb.style.display = 'none'; }
+      if (plot){ plot.style.display = 'none'; plot.src = ''; }
+
+      // Reset Python-side buffers so nothing leaks
+      await pyodide.runPythonAsync(`
+    globals()['_last_html_'] = ''
+    globals()['_last_plot_png_'] = ''
+    globals()['_plotted_'] = False
+    globals()['_last_xticks_'] = []
+    `);
+
+      // Capture stdout/stderr from this run
+      let textBuf = '';
+      pyodide.setStdout({ batched: s => textBuf += s });
+      pyodide.setStderr({ batched: s => textBuf += s });
+
+      try {
+        const codeStr = getCode(id);
+
+        // --- auto-render final bare expression (df.head(), etc.), Jupyter-style
+        const lines = codeStr.split(/\r?\n/);
+        let last = "";
+        for (let i = lines.length - 1; i >= 0; i--) {
+          if (lines[i].trim() && !/^\s*#/.test(lines[i])) { last = lines[i]; lines.length = i; break; }
+        }
+        const body = lines.join("\n");
+        const printMatch = last && last.match(/^\s*print\s*\(([\s\S]*)\)\s*$/);
+        const exprSource = printMatch ? printMatch[1] : last;
+        const looksLikeExpr =
+          exprSource &&
+          !/^\s*(import|from|for|while|if|elif|else|try|except|finally|def|class|with|return|raise|assert|pass|break|continue)\b/.test(exprSource) &&
+          !/^\s*[\w\[\]\.]+\s*=/.test(exprSource);
+
+        if (looksLikeExpr && body.trim()) {
+          await pyodide.runPythonAsync(body);
+        } else {
+          await pyodide.runPythonAsync(codeStr);
+        }
+
+        if (looksLikeExpr) {
+          const py = `
+          _last_html_ = ''
+          try:
+              _last_expr = ${JSON.stringify(exprSource)}
+              _val = eval(compile(_last_expr, "<expr>", "eval"), globals())
+              try:
+                  import pandas as _pd
+                  if isinstance(_val, (_pd.DataFrame, _pd.Series)) and hasattr(_val, "to_html"):
+                      _last_html_ = _val.to_html(border=0)
+                  elif hasattr(_val, "to_html"):
+                      _last_html_ = _val.to_html()
+                  else:
+                      _last_html_ = str(_val)
+              except Exception:
+                  _last_html_ = str(_val)
+          except Exception:
+              pass
+          `;
+          await pyodide.runPythonAsync(py);
+
+        }
+
+        // Render notebook-style outputs
+        const html = await pyodide.runPythonAsync("globals().get('_last_html_', '')");
+        if (nb && html && String(html).trim()) nb.innerHTML += html;
+
+        const b64 = await pyodide.runPythonAsync("globals().get('_last_plot_png_', '')");
+        if (plot && b64){ plot.src = 'data:image/png;base64,' + b64; plot.style.display = 'block'; }
+
+        if (nb && textBuf.trim()){
+          const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+          nb.innerHTML += `<pre style="margin-top:10px">${esc(textBuf)}</pre>`;
+        }
+
+        if (nb && (nb.innerHTML.trim() || (plot && plot.style.display === 'block'))) {
+          nb.style.display = 'block';
+        }
+      } catch (e) {
+        if (nb){
+          nb.innerHTML = `<pre style="color:#ff6b6b;margin:0">${String(e)}</pre>`;
+          nb.style.display = 'block';
+        }
+      }
+    });
+
+    // ✅ your existing check handler
+    checkBtn.addEventListener('click', async()=>{
+      if(!pythonReady) return;
+      let ok=false;
+      if(id==='m1') ok = await pyodide.runPythonAsync("'df' in globals() and hasattr(df,'head')");
+      if(id==='m2') ok = (String(await pyodide.runPythonAsync("str(df['date'].dtype)"))).includes('datetime64');
+      if(id==='m3') ok = await pyodide.runPythonAsync("'month' in df.columns");
+      if(id==='m4') ok = await pyodide.runPythonAsync("'totals' in globals() and hasattr(totals,'sum')");
+      if(id==='m5'){
+        ok = await pyodide.runPythonAsync(`
+  _exp_ok = False
+  if globals().get('_plotted_', False):
+      try:
+          import pandas as _pd
+          if 'totals' in globals():
+              _exp = list(totals.sort_values(ascending=False).head(5).index)
+          elif 'df' in globals():
+              _exp = list(df.groupby('drink')['revenue'].sum().sort_values(ascending=False).head(5).index)
+          else:
+              _exp = []
+      except Exception:
+          _exp = []
+      _ticks = list(globals().get('_last_xticks_', []))
+      _exp_ok = len(_ticks)==5 and (_ticks==_exp)
+  _exp_ok
+        `);
+      }
+      finalizeMission(id, !!ok);
+    });
+  }
+
+
+  ORDER.forEach(wireMission);
+
+  const passed=new Set(); let earned=0;
+
+  function finalizeMission(id, ok){
+    if (!ok) {
+      alert('Not quite — try again.');
+      return;
+    }
+
+    if (!passed.has(id)){
+      passed.add(id);
+      earned += POINTS[id];
+      scoreNow.textContent = earned;
+      celebrateFx();
+    }
+
+    const cur = card(id);
+    pill(id).textContent = '✅ Done';
+    cur.classList.add('done');
+
+    // Collapse the solved section (small delay lets the checkmark update first)
+    setTimeout(() => { cur.open = false; }, 250);
+
+    const idx = ORDER.indexOf(id);
+    if (idx >= 0 && idx < ORDER.length - 1){
+      const nextId = ORDER[idx+1];
+      const nxt = card(nextId);
+      pill(nextId).textContent = 'In progress';
+      nxt.open = true;
+      // bring the next task into view
+      nxt.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (idx === ORDER.length - 1){
+      finished = true;
+      if (ticker) clearInterval(ticker);
+      showCertificate(true);
+    }
+  }
+
+
+  // Reset
+  el('resetBtn').addEventListener('click', ()=>{
+    if (confirm('Reset the training? You will lose all progress!')) {
+      window.location.reload();
+    }
+  });
+
+
+  // Certificate + download
+  function downloadSubmission(){
+    const name = (playerNameEl?.value || 'anonymous_ninja').trim() || 'anonymous_ninja';
+    const data = {
+      assignment:'data101_pandasquest_v1', version:'3.2',
+      player:{name}, missions:Object.fromEntries(ORDER.map(id=>[id,{passed:passed.has(id),points:POINTS[id]}])),
+      score: earned, completed: !!finished, expired: !!expired, elapsed_ms: (Date.now()-startTs)
+    };
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    const safe = name.replace(/[^a-z0-9_-]+/gi,'_') || 'submission';
+    a.download = `data_ninja_level1_${safe}.json`; a.click(); URL.revokeObjectURL(a.href);
+  }
+  if(downloadSubmitBtn) downloadSubmitBtn.addEventListener('click', downloadSubmission);
+  if(closeCertBtn) closeCertBtn.addEventListener('click', ()=>{ certModal.style.display='none'; });
+
+  function showCertificate(success){
+    const total = ORDER.reduce((s,k)=>s+POINTS[k],0);
+    certTitle.textContent = success ? '🏆 Data Ninja — Completion Certificate' : '⌛ Data Ninja — Incomplete Certificate';
+    certBody.innerHTML = success
+      ? `You have completed all Data Ninja Level 1 missions with a score of <strong>${earned}/${total}</strong>.<br/>Enter your name to stamp your certificate and download your submission.`
+      : `Your ninja training timer has ended. You finished with a score of <strong>${earned}/${total}</strong>.<br/>Enter your name to receive an <em>incomplete</em> certificate and download your submission.`;
+    certModal.style.display='flex'; playerNameEl?.focus();
+  }
+</script>
+</body>
+</html>
