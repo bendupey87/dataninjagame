@@ -593,13 +593,26 @@
     Object.values(editors).forEach(cm=>cm.setOption('theme', theme));
   }
   requestAnimationFrame(initEditors);
-  function applyTheme(mode){
-    root.setAttribute('data-theme', mode);
-    // Button label: show the OTHER mode as the action
-    if (themeToggle) themeToggle.textContent = (mode === 'light') ? 'Dark mode' : 'Light mode';
-    // Keep CodeMirror in sync
-    if (typeof setEditorTheme === 'function') setEditorTheme(mode);
-  }
+    function applyTheme(mode){
+      root.setAttribute('data-theme', mode);
+      // Button should show the *other* mode as the action
+      if (themeToggle) themeToggle.textContent = (mode === 'light') ? 'Dark mode' : 'Light mode';
+      // Sync CodeMirror theme
+      const theme = (mode==='light') ? 'neo' : 'material-darker';
+      Object.values(editors).forEach(cm=>cm.setOption('theme', theme));
+    }
+
+    // 🔽 Force DARK by default; only override if user picked something before
+    const saved = localStorage.getItem('theme') || 'dark';
+    applyTheme(saved);
+
+    if (themeToggle){
+      themeToggle.addEventListener('click', ()=>{
+        const next = (root.getAttribute('data-theme') === 'light') ? 'dark' : 'light';
+        localStorage.setItem('theme', next);
+        applyTheme(next);
+      });
+    }
   // Initial theme (respects OS, defaults to dark)
   const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
   applyTheme(prefersLight ? 'light' : 'dark');
