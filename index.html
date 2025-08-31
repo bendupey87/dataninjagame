@@ -4,6 +4,13 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Data Ninja — Level 1</title>
+<script>
+  // Default to dark unless the user picked something before
+  (function () {
+    const saved = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+  })();
+</script>
 <style>
   button.ghost{
     border:1px solid var(--divider); background:transparent; color:var(--ink);
@@ -88,7 +95,28 @@
 
   header{position:sticky;top:0;z-index:1000;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:2px solid var(--divider-strong);background: var(--panel);box-shadow:0 4px 0 #000}
   header strong{letter-spacing:.3px}
-  .pill{display:inline-block;font-size:12px;padding:3px 10px;border:2px solid var(--divider-strong);border-radius:4px;background:#1a1a1a;color:var(--divider-soft);font-weight:700}
+  /* Replace the old .pill (it hardcoded a dark bg) */
+  .pill{
+    display:inline-block;
+    font-size:12px;
+    padding:3px 10px;
+    border:2px solid var(--divider-strong);
+    border-radius:4px;
+    background: var(--panel-elev);
+    color: var(--ink-muted);
+    font-weight:700;
+  }
+
+  /* Theme toggle button appears white in light, black in dark */
+  #themeToggle{
+    border:2px solid var(--divider-strong);
+    border-radius:6px;
+    font-weight:700;
+    padding:4px 10px;
+  }
+  :root[data-theme="light"] #themeToggle{ background:#fff; color:#000; }
+  :root[data-theme="dark"]  #themeToggle{ background:#000; color:#fff; }
+
 
   main{display:grid;grid-template-columns:1fr;gap:12px;padding:12px}
   .panel{background:var(--panel);border:1px solid var(--divider);border-radius:10px}
@@ -97,7 +125,34 @@
   label{font-size:12px;color:var(--muted)}
   code{color:var(--accent-soft)}
 
-  button{background:#1f1f1f;color:var(--accent-soft);border:2px solid var(--accent);border-radius:6px;padding:6px 10px;font-weight:700;cursor:pointer}
+  /* 2) Reset button: warn style in both themes */
+  #resetBtn{
+    color: var(--accent-strong);
+    border: 2px solid var(--accent-strong);
+    background: transparent;
+  }
+  :root[data-theme="light"] #resetBtn{
+    background: #fff;
+  }
+
+  /* 3) Check button: success style in both themes */
+  button[data-check]{
+    color: var(--ok);
+    border: 2px solid var(--ok);
+    background: transparent;
+    font-weight: 700;
+  }
+  :root[data-theme="light"] button[data-check]{
+    background: #fff;
+  }
+
+  /* (optional) a little hover feedback */
+  button[data-check]:hover{
+    filter: brightness(1.08);
+  }
+  #resetBtn:hover{
+    filter: brightness(1.08);
+  }
   button.primary{background:var(--accent-strong);color:#110505;border-color:var(--accent-strong)}
   button:disabled{opacity:.6;cursor:not-allowed}
 
@@ -400,7 +455,102 @@
     border-color: var(--accent);
     color: var(--accent-soft);
   }
+  #welcomeOverlay { pointer-events: auto; }
+  #welcomeOverlay * { pointer-events: auto; }
+  /* Make the Reset button NOT inherit the global dark background */
+  #resetBtn{
+    background: transparent;
+    color: var(--accent-soft);
+    border: 2px solid var(--accent);
+  }
 
+  /* Optional: in light theme, make it white with strong red text/border */
+  :root[data-theme="light"] #resetBtn{
+    background: #fff;
+    color: var(--accent-strong);
+    border-color: var(--accent-strong);
+  }
+  /* --- Button system ------------------------------------------------------- */
+  :root{
+    --btn-h: 34px;
+    --btn-pad-x: 12px;
+    --btn-radius: 8px;
+  }
+
+  /* Base look for ALL action buttons + doc links */
+  button,
+  .docLinks a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--btn-h);
+    padding: 0 var(--btn-pad-x);
+    border-radius: var(--btn-radius);
+    line-height: 1;                 /* no tall lines */
+    font-weight: 700;
+    cursor: pointer;
+    border: 1.5px solid var(--divider-strong);
+    background: var(--panel-elev);
+    color: var(--ink);
+    transition: transform .02s ease, filter .15s ease, box-shadow .15s ease;
+  }
+  button:active,
+  .docLinks a:active { transform: translateY(1px); }
+
+  /* Theme-specific base tweak for light mode */
+  :root[data-theme="light"] button,
+  :root[data-theme="light"] .docLinks a {
+    background: #fff;
+    color: #1b1b1f;
+  }
+
+  /* Variants (mapped to your existing markup) */
+  button.primary {                      /* Run */
+    background: var(--accent-strong);
+    border-color: var(--accent-strong);
+    color: #110505;
+  }
+
+  button[data-check] {                  /* Check */
+    background: transparent;
+    border-color: var(--ok);
+    color: var(--ok);
+  }
+
+  #resetBtn {                           /* Reset */
+    background: transparent;
+    border-color: var(--accent-strong);
+    color: var(--accent-strong);
+  }
+
+  /* Theme Toggle (white in light, black in dark) */
+  #themeToggle {
+    height: var(--btn-h);
+    padding: 0 var(--btn-pad-x);
+    border: 1.5px solid var(--divider-strong);
+    border-radius: var(--btn-radius);
+    font-weight: 700;
+  }
+  :root[data-theme="light"] #themeToggle{ background:#fff; color:#000; }
+  :root[data-theme="dark"]  #themeToggle{ background:#000; color:#fff; }
+
+  /* Docs row layout + note */
+  .status-actions { align-items: center; } /* already flex; keep centered */
+  .docLinks{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .docLinks .docs-note{
+    font-size:12px; color:var(--ink-muted);
+    margin-right: 6px; white-space: nowrap;
+  }
+  /* Subtle note when a cell runs with no visible output */
+  .no-output{
+    font-size:12px;
+    color:var(--ink-muted);
+    padding:8px 10px;
+    border:1px dashed var(--divider);
+    border-radius:6px;
+    background:var(--panel-elev);
+  }
+  .cm-has-placeholder .CodeMirror-code { opacity: .65; font-style: italic; }
 </style>
   <link rel="stylesheet" href="https://unpkg.com/codemirror@5.65.16/lib/codemirror.css">
   <link rel="stylesheet" href="https://unpkg.com/codemirror@5.65.16/theme/material-darker.css">
@@ -424,7 +574,7 @@
     <p>You have <strong>20 minutes</strong> to complete five stealthy missions using official scrolls (docs) and your mind.<br><strong>No LLMs</strong> today — even the wise ChatGPT scroll is sealed.</p>
     <p>If the timer runs out, you’ll earn an <em>Incomplete Training Scroll</em>. If you press <strong>Reset</strong>, your progress will vanish into the night.</p>
     <p style="font-size:12px;color:var(--muted)">Tip: pandas & matplotlib documentation are fair game. Honor code applies. 🥷</p>
-    <div id="welcomeActions"><button id="dismissWelcome" class="primary">Begin Training ▶</button></div>
+    <div id="welcomeActions"><button id="dismissWelcome" class="primary" type="button">Begin Training ▶</button></div>
   </div>
 </div>
 
@@ -459,6 +609,7 @@
     <div class="status-actions">
       <button id="resetBtn" class="warn">Reset — You will lose all progress!</button>
       <div class="docLinks" aria-label="Reference documentation">
+        <div class="docs-note">Only these resources are allowed for this assignment:</div>
         <a href="https://pandas.pydata.org/docs/" target="_blank" rel="noopener">pandas docs</a>
         <a href="https://matplotlib.org/stable/" target="_blank" rel="noopener">matplotlib docs</a>
         <a href="https://docs.python.org/3/" target="_blank" rel="noopener">python docs</a>
@@ -567,69 +718,99 @@
 <script type="module">
   const welcomeOverlay=document.getElementById('welcomeOverlay');
   const dismissWelcome=document.getElementById('dismissWelcome');
-  // THEME TOGGLE (text label swaps between "Light mode" and "Dark mode")
-  const themeToggle = document.getElementById('themeToggle');
-  const root = document.documentElement;
   // --- CodeMirror editors ---
   const editors = {}; // id -> CodeMirror instance
 
   function initEditors(){
+    const TODO = '#TODO: YOUR CODE HERE\n';
+
     ['m1','m2','m3','m4','m5'].forEach(id=>{
       const ta = document.getElementById(`code-${id}`);
       if (!ta) return;
+
       const cm = CodeMirror.fromTextArea(ta, {
         mode:'python',
         theme:(document.documentElement.getAttribute('data-theme')==='light'?'neo':'material-darker'),
-        lineNumbers:true, matchBrackets:true, indentUnit:4, tabSize:4, indentWithTabs:false,
+        lineNumbers:true,
+        matchBrackets:true,
+        indentUnit:4,
+        tabSize:4,
+        indentWithTabs:false,
         autofocus: id==='m1'
       });
       cm.setSize('100%','120px');
+
+      // If it's empty, seed the TODO and mark as placeholder
+      let hasPlaceholder = false;
+      if (!cm.getValue().trim()) {
+        cm.setValue(TODO);
+        hasPlaceholder = true;
+        cm.getWrapperElement().classList.add('cm-has-placeholder');
+        // put caret at start so typing replaces from the beginning
+        cm.setCursor({line:0, ch:0});
+      }
+
+      // First real keystroke clears the placeholder
+      cm.on('keydown', (_cm, e) => {
+        if (!hasPlaceholder) return;
+        // ignore navigation keys
+        const navKeys = ['Shift','Alt','Control','Meta','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Tab','CapsLock'];
+        if (navKeys.includes(e.key)) return;
+
+        if (_cm.getValue() === TODO) {
+          hasPlaceholder = false;
+          _cm.getWrapperElement().classList.remove('cm-has-placeholder');
+          _cm.setValue('');               // wipe TODO
+          // allow the key they just pressed to insert normally
+        }
+      });
+
       editors[id] = cm;
     });
   }
+
+
   function getCode(id){ return editors[id] ? editors[id].getValue() : (document.getElementById(`code-${id}`)?.value || ''); }
   function setEditorTheme(mode){
     const theme = (mode==='light') ? 'neo' : 'material-darker';
     Object.values(editors).forEach(cm=>cm.setOption('theme', theme));
   }
   requestAnimationFrame(initEditors);
-    function applyTheme(mode){
-      root.setAttribute('data-theme', mode);
-      // Button should show the *other* mode as the action
-      if (themeToggle) themeToggle.textContent = (mode === 'light') ? 'Dark mode' : 'Light mode';
-      // Sync CodeMirror theme
-      const theme = (mode==='light') ? 'neo' : 'material-darker';
-      Object.values(editors).forEach(cm=>cm.setOption('theme', theme));
-    }
 
-    // 🔽 Force DARK by default; only override if user picked something before
-    const saved = localStorage.getItem('theme') || 'dark';
-    applyTheme(saved);
-
-    if (themeToggle){
-      themeToggle.addEventListener('click', ()=>{
-        const next = (root.getAttribute('data-theme') === 'light') ? 'dark' : 'light';
-        localStorage.setItem('theme', next);
-        applyTheme(next);
-      });
-    }
   // Initial theme (respects OS, defaults to dark)
-  const prefersLight = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
-  applyTheme(prefersLight ? 'light' : 'dark');
+  // --- THEME: single source of truth ---
+  const themeToggle = document.getElementById('themeToggle');
+  const root = document.documentElement;
+
+  function applyTheme(mode){
+    root.setAttribute('data-theme', mode);
+    if (themeToggle){
+      themeToggle.textContent = (mode === 'light') ? 'Dark mode' : 'Light mode';
+    }
+    setEditorTheme(mode);
+  }
+
+  // We set data-theme early in <head>; use it here
+  const initial = root.getAttribute('data-theme') || 'dark';
+  applyTheme(initial);
 
   if (themeToggle){
     themeToggle.addEventListener('click', ()=>{
       const next = (root.getAttribute('data-theme') === 'light') ? 'dark' : 'light';
+      localStorage.setItem('theme', next);
       applyTheme(next);
     });
   }
 
-  if(dismissWelcome){
-    dismissWelcome.addEventListener('click',()=>{
+
+  if (dismissWelcome){
+    dismissWelcome.addEventListener('click', async (e)=>{
+      e.preventDefault();
       welcomeOverlay.style.display='none';
-      // Start timer and pyodide bootstrap here, restored from full V1
+      await bootstrapPython();
     });
   }
+
 
   const statusEl = document.getElementById('status');
   const scoreNow = document.getElementById('scoreNow');
@@ -669,16 +850,17 @@
 }
 
 
-  // Pyodide bootstrap
-  let pyodide=null, pythonReady=false;
-  (async()=>{
-    try{
-      statusEl.textContent='Downloading Pyodide…';
-      const { loadPyodide } = await import('https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.mjs');
-      pyodide = await loadPyodide({ indexURL:'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/' });
-      statusEl.textContent='Loading packages (pandas, matplotlib)…';
-      await pyodide.loadPackage(['pandas','matplotlib']);
-      await pyodide.runPythonAsync(`
+// Pyodide bootstrap (deferred until user clicks Begin Training)
+let pyodide = null, pythonReady = false;
+
+async function bootstrapPython(){
+  try{
+    statusEl.textContent='Downloading Pyodide…';
+    const { loadPyodide } = await import('https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.mjs');
+    pyodide = await loadPyodide({ indexURL:'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/' });
+    statusEl.textContent='Loading packages (pandas, matplotlib)…';
+    await pyodide.loadPackage(['pandas','matplotlib']);
+    await pyodide.runPythonAsync(`
 import io, base64
 import matplotlib
 matplotlib.use('AGG')
@@ -699,7 +881,7 @@ def _bridge_show(*a, **k):
         globals()['_last_xticks_'] = []
     plt.close('all')
 plt.show = _bridge_show
-globals()['_last_html_'] = ''  # buffer
+globals()['_last_html_'] = ''
 def display(obj):
     try:
         if hasattr(obj, 'to_html'):
@@ -709,41 +891,45 @@ def display(obj):
     except Exception:
         html = str(obj)
     globals()['_last_html_'] = html
-      `);
+    `);
 
-      const CSV_TEXT =
-        "date,drink,qty,price,revenue,shop\n"+
-        "2025-01-02,Latte,32,4.25,136,Downtown\n"+
-        "2025-01-03,Mocha,20,4.75,95,Campus\n"+
-        "2025-01-03,Cold Brew,18,4.00,72,Airport\n"+
-        "2025-02-12,Latte,40,4.25,170,Campus\n"+
-        "2025-02-13,Espresso,55,3.00,165,Downtown\n"+
-        "2025-02-14,Cold Brew,60,4.00,240,Downtown\n"+
-        "2025-03-01,Latte,28,4.25,119,Airport\n"+
-        "2025-03-02,Mocha,42,4.75,199.5,Airport\n"+
-        "2025-03-06,Americano,70,3.50,245,Campus\n"+
-        "2025-03-21,Cappuccino,34,4.25,144.5,Downtown\n";
-      pyodide.FS.writeFile('/tmp/mystic_coffee_sales.csv', new TextEncoder().encode(CSV_TEXT));
+    const CSV_TEXT = (
+      "date,drink,qty,price,revenue,shop\n"+
+      "2025-01-02,Latte,32,4.25,136,Downtown\n"+
+      "2025-01-03,Mocha,20,4.75,95,Campus\n"+
+      "2025-01-03,Cold Brew,18,4.00,72,Airport\n"+
+      "2025-02-12,Latte,40,4.25,170,Campus\n"+
+      "2025-02-13,Espresso,55,3.00,165,Downtown\n"+
+      "2025-02-14,Cold Brew,60,4.00,240,Downtown\n"+
+      "2025-03-01,Latte,28,4.25,119,Airport\n"+
+      "2025-03-02,Mocha,42,4.75,199.5,Airport\n"+
+      "2025-03-06,Americano,70,3.50,245,Campus\n"+
+      "2025-03-21,Cappuccino,34,4.25,144.5,Downtown\n"
+    );
+    pyodide.FS.writeFile('/tmp/mystic_coffee_sales.csv', new TextEncoder().encode(CSV_TEXT));
 
-      pythonReady=true; statusEl.textContent='Python ready ✔';
+    pythonReady = true;
+    statusEl.textContent = 'Python ready ✔';
 
-      // start timer
-      startTs = Date.now();
-      ticker = setInterval(()=>{
-        const remain = Math.max(0, DURATION_MS - (Date.now()-startTs));
-        const s  = Math.floor(remain/1000);
-        const mm = String(Math.floor(s/60)).padStart(2,'0');
-        const ss = String(s%60).padStart(2,'0');
-        if (timerEl) timerEl.textContent = `${mm}:${ss}`;
-        if (remain===0 && !finished){
-          clearInterval(ticker); expired = true; showCertificate(false);
-        }
-      },250);
-    }catch(e){
-      console.error(e); statusEl.textContent='Load error';
-      alert('Failed to load Python runtime. See console.');
-    }
-  })();
+    // start timer
+    startTs = Date.now();
+    ticker = setInterval(()=>{
+      const remain = Math.max(0, DURATION_MS - (Date.now()-startTs));
+      const s  = Math.floor(remain/1000);
+      const mm = String(Math.floor(s/60)).padStart(2,'0');
+      const ss = String(s%60).padStart(2,'0');
+      if (timerEl) timerEl.textContent = `${mm}:${ss}`;
+      if (remain===0 && !finished){
+        clearInterval(ticker); expired = true; showCertificate(false);
+      }
+    },250);
+  }catch(e){
+    console.error(e);
+    statusEl.textContent='Load error';
+    alert('Failed to load Python runtime. See console.');
+  }
+}
+
 
   // Small helpers
   const el = id=>document.getElementById(id);
@@ -778,94 +964,111 @@ def display(obj):
 
     if (out) out.style.display = 'none';
 
-    runBtn.addEventListener('click', async () => {
-      if (!pythonReady) return;
+  runBtn.addEventListener('click', async () => {
+    if (!pythonReady) return;
 
-      // Clear visuals
-      if (nb){ nb.innerHTML = ''; nb.style.display = 'none'; }
-      if (plot){ plot.style.display = 'none'; plot.src = ''; }
+    // Busy state for the Run button
+    const origLabel = runBtn.textContent;
+    runBtn.textContent = 'Running…';
+    runBtn.disabled = true;
 
-      // Reset Python-side buffers so nothing leaks
-      await pyodide.runPythonAsync(`
-    globals()['_last_html_'] = ''
-    globals()['_last_plot_png_'] = ''
-    globals()['_plotted_'] = False
-    globals()['_last_xticks_'] = []
+    // Clear visuals
+    if (nb){ nb.innerHTML = ''; nb.style.display = 'none'; }
+    if (plot){ plot.style.display = 'none'; plot.src = ''; }
+
+    // Reset Python-side buffers so nothing leaks
+    await pyodide.runPythonAsync(`
+      globals()['_last_html_'] = ''
+      globals()['_last_plot_png_'] = ''
+      globals()['_plotted_'] = False
+      globals()['_last_xticks_'] = []
     `);
 
-      // Capture stdout/stderr from this run
-      let textBuf = '';
-      pyodide.setStdout({ batched: s => textBuf += s });
-      pyodide.setStderr({ batched: s => textBuf += s });
+    // Capture stdout/stderr from this run
+    let textBuf = '';
+    pyodide.setStdout({ batched: s => textBuf += s });
+    pyodide.setStderr({ batched: s => textBuf += s });
 
-      try {
-        const codeStr = getCode(id);
+    try {
+      const codeStr = getCode(id);
 
-        // --- auto-render final bare expression (df.head(), etc.), Jupyter-style
-        const lines = codeStr.split(/\r?\n/);
-        let last = "";
-        for (let i = lines.length - 1; i >= 0; i--) {
-          if (lines[i].trim() && !/^\s*#/.test(lines[i])) { last = lines[i]; lines.length = i; break; }
-        }
-        const body = lines.join("\n");
-        const printMatch = last && last.match(/^\s*print\s*\(([\s\S]*)\)\s*$/);
-        const exprSource = printMatch ? printMatch[1] : last;
-        const looksLikeExpr =
-          exprSource &&
-          !/^\s*(import|from|for|while|if|elif|else|try|except|finally|def|class|with|return|raise|assert|pass|break|continue)\b/.test(exprSource) &&
-          !/^\s*[\w\[\]\.]+\s*=/.test(exprSource);
-
-        if (looksLikeExpr && body.trim()) {
-          await pyodide.runPythonAsync(body);
-        } else {
-          await pyodide.runPythonAsync(codeStr);
-        }
-
-        if (looksLikeExpr) {
-          const py = `
-          _last_html_ = ''
-          try:
-              _last_expr = ${JSON.stringify(exprSource)}
-              _val = eval(compile(_last_expr, "<expr>", "eval"), globals())
-              try:
-                  import pandas as _pd
-                  if isinstance(_val, (_pd.DataFrame, _pd.Series)) and hasattr(_val, "to_html"):
-                      _last_html_ = _val.to_html(border=0)
-                  elif hasattr(_val, "to_html"):
-                      _last_html_ = _val.to_html()
-                  else:
-                      _last_html_ = str(_val)
-              except Exception:
-                  _last_html_ = str(_val)
-          except Exception:
-              pass
-          `;
-          await pyodide.runPythonAsync(py);
-
-        }
-
-        // Render notebook-style outputs
-        const html = await pyodide.runPythonAsync("globals().get('_last_html_', '')");
-        if (nb && html && String(html).trim()) nb.innerHTML += html;
-
-        const b64 = await pyodide.runPythonAsync("globals().get('_last_plot_png_', '')");
-        if (plot && b64){ plot.src = 'data:image/png;base64,' + b64; plot.style.display = 'block'; }
-
-        if (nb && textBuf.trim()){
-          const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-          nb.innerHTML += `<pre style="margin-top:10px">${esc(textBuf)}</pre>`;
-        }
-
-        if (nb && (nb.innerHTML.trim() || (plot && plot.style.display === 'block'))) {
-          nb.style.display = 'block';
-        }
-      } catch (e) {
-        if (nb){
-          nb.innerHTML = `<pre style="color:#ff6b6b;margin:0">${String(e)}</pre>`;
-          nb.style.display = 'block';
-        }
+      // --- auto-render final bare expression (df.head(), etc.), Jupyter-style
+      const lines = codeStr.split(/\r?\n/);
+      let last = "";
+      for (let i = lines.length - 1; i >= 0; i--) {
+        if (lines[i].trim() && !/^\s*#/.test(lines[i])) { last = lines[i]; lines.length = i; break; }
       }
-    });
+      const body = lines.join("\n");
+      const printMatch = last && last.match(/^\s*print\s*\(([\s\S]*)\)\s*$/);
+      const exprSource = printMatch ? printMatch[1] : last;
+      const looksLikeExpr =
+        exprSource &&
+        !/^\s*(import|from|for|while|if|elif|else|try|except|finally|def|class|with|return|raise|assert|pass|break|continue)\b/.test(exprSource) &&
+        !/^\s*[\w\[\]\.]+\s*=/.test(exprSource);
+
+      if (looksLikeExpr && body.trim()) {
+        await pyodide.runPythonAsync(body);
+      } else {
+        await pyodide.runPythonAsync(codeStr);
+      }
+
+      if (looksLikeExpr) {
+        const py = `
+            _last_html_ = ''
+            try:
+                _last_expr = ${JSON.stringify(exprSource)}
+                _val = eval(compile(_last_expr, "<expr>", "eval"), globals())
+                try:
+                    import pandas as _pd
+                    if isinstance(_val, (_pd.DataFrame, _pd.Series)) and hasattr(_val, "to_html"):
+                        _last_html_ = _val.to_html(border=0)
+                    elif hasattr(_val, "to_html"):
+                        _last_html_ = _val.to_html()
+                    else:
+                        _last_html_ = str(_val)
+                except Exception:
+                    _last_html_ = str(_val)
+            except Exception:
+                pass
+        `;
+        await pyodide.runPythonAsync(py);
+      }
+
+      // Render notebook-style outputs
+      const html = await pyodide.runPythonAsync("globals().get('_last_html_', '')");
+      if (nb && html && String(html).trim()) nb.innerHTML += html;
+
+      const b64 = await pyodide.runPythonAsync("globals().get('_last_plot_png_', '')");
+      if (plot && b64){ plot.src = 'data:image/png;base64,' + b64; plot.style.display = 'block'; }
+
+      if (nb && textBuf.trim()){
+        const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+        nb.innerHTML += `<pre style="margin-top:10px">${esc(textBuf)}</pre>`;
+      }
+
+      // 🔔 If there was truly no visible output, show a friendly note
+      const madePlot = plot && plot.style.display === 'block';
+      const hasHtml  = nb && nb.innerHTML.trim().length > 0;
+      const hasText  = textBuf.trim().length > 0;
+
+      if (nb && !hasHtml && !madePlot && !hasText) {
+        nb.innerHTML = `<div class="no-output">✔ Code ran (no output)</div>`;
+        nb.style.display = 'block';
+      } else if (nb && (hasHtml || hasText || madePlot)) {
+        nb.style.display = 'block';
+      }
+    } catch (e) {
+      if (nb){
+        nb.innerHTML = `<pre style="color:#ff6b6b;margin:0">${String(e)}</pre>`;
+        nb.style.display = 'block';
+      }
+    } finally {
+      // Restore Run button
+      runBtn.textContent = origLabel;
+      runBtn.disabled = false;
+    }
+  });
+
 
     // ✅ your existing check handler
     checkBtn.addEventListener('click', async()=>{
