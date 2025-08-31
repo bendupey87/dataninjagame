@@ -566,6 +566,7 @@
   <div>🥷 <strong>Data Ninja — Level 1</strong></div>
   <div class="pill" id="status">Loading Python…</div>
   <div class="pill">v3.6 (80s ninja)</div>
+  <img src="assets/ninja.png" id="ninjaLogo" alt="Ninja" />
 </header>
 
 <div id="welcomeOverlay">
@@ -1203,8 +1204,7 @@ def display(obj):
   async function submitScore(code, level, score, elapsed_ms) {
     const res = await fetch(API_WITH_ORIGIN, {
       method: "POST",
-      headers: {'Content-Type':'text/plain;charset=utf-8',
-        'X-App-Key': X_APP_KEY
+      headers: {'Content-Type':'text/plain;charset=utf-8'
       },
       body: JSON.stringify({
         action: "submit",
