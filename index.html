@@ -551,20 +551,19 @@
     background:var(--panel-elev);
   }
   .cm-has-placeholder .CodeMirror-code { opacity: .65; font-style: italic; }
-#ninjaBanner {
+  #ninjaBanner {
     display: flex;
     justify-content: center;   /* center horizontally */
     align-items: center;
-    padding: 20px 0;           /* space above/below */
-    background: var(--panel);  /* match your header background */
+    padding: 20px 0;
+    background: #000;          /* solid black background */
     border-bottom: 2px solid var(--divider-strong);
   }
 
   #ninjaLogo {
-    height: 180px;   /* make him big */
+    height: 180px;  /* adjust size as you like */
     width: auto;
   }
-
   @keyframes ninjaFade {
     from { transform: translateX(-50%) scale(0.8); opacity: 0; }
     to   { transform: translateX(-50%) scale(1);   opacity: 1; }
