@@ -551,16 +551,18 @@
     background:var(--panel-elev);
   }
   .cm-has-placeholder .CodeMirror-code { opacity: .65; font-style: italic; }
+#ninjaBanner {
+    display: flex;
+    justify-content: center;   /* center horizontally */
+    align-items: center;
+    padding: 20px 0;           /* space above/below */
+    background: var(--panel);  /* match your header background */
+    border-bottom: 2px solid var(--divider-strong);
+  }
+
   #ninjaLogo {
-    position: fixed;     /* stays visible no matter where you scroll */
-    top: 20px;           /* distance from top of page */
-    left: 50%;           /* center horizontally */
-    transform: translateX(-50%);  /* actually centers the image */
-    height: 200px;       /* make it big – adjust as needed */
+    height: 180px;   /* make him big */
     width: auto;
-    z-index: 2000;       /* make sure it’s on top of everything */
-    pointer-events: none;
-    animation: ninjaFade 1s ease-out;
   }
 
   @keyframes ninjaFade {
@@ -587,11 +589,13 @@
   <script src="https://unpkg.com/codemirror@5.65.16/addon/hint/show-hint.js"></script>
 </head>
 <body>
+  <div id="ninjaBanner">
+  <img src="assets/ninja.png" id="ninjaLogo" alt="Ninja" />
+</div>
 <header>
   <div>🥷 <strong>Data Ninja — Level 1</strong></div>
   <div class="pill" id="status">Loading Python…</div>
   <div class="pill">v3.6 (80s ninja)</div>
-  <img src="assets/ninja.png" id="ninjaLogo" alt="Ninja" />
 </header>
 
 <div id="welcomeOverlay">
