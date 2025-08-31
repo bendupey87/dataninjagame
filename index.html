@@ -552,14 +552,22 @@
   }
   .cm-has-placeholder .CodeMirror-code { opacity: .65; font-style: italic; }
   #ninjaLogo {
-    height: 40px;          /* adjust size */
+    position: fixed;     /* stays visible no matter where you scroll */
+    top: 20px;           /* distance from top of page */
+    left: 50%;           /* center horizontally */
+    transform: translateX(-50%);  /* actually centers the image */
+    height: 200px;       /* make it big – adjust as needed */
     width: auto;
-    position: absolute;
-    top: 8px;
-    right: 12px;
-    z-index: 1500;         /* higher than header background */
-    pointer-events: none;  /* makes it non-clickable */
+    z-index: 2000;       /* make sure it’s on top of everything */
+    pointer-events: none;
+    animation: ninjaFade 1s ease-out;
   }
+
+  @keyframes ninjaFade {
+    from { transform: translateX(-50%) scale(0.8); opacity: 0; }
+    to   { transform: translateX(-50%) scale(1);   opacity: 1; }
+  }
+
   #ninjaLogo {
     animation: ninjaSlide 0.8s ease-out;
   }
