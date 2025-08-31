@@ -551,6 +551,23 @@
     background:var(--panel-elev);
   }
   .cm-has-placeholder .CodeMirror-code { opacity: .65; font-style: italic; }
+  #ninjaLogo {
+    height: 40px;          /* adjust size */
+    width: auto;
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    z-index: 1500;         /* higher than header background */
+    pointer-events: none;  /* makes it non-clickable */
+  }
+  #ninjaLogo {
+    animation: ninjaSlide 0.8s ease-out;
+  }
+  @keyframes ninjaSlide {
+    from { transform: translateX(100px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
+
 </style>
   <link rel="stylesheet" href="https://unpkg.com/codemirror@5.65.16/lib/codemirror.css">
   <link rel="stylesheet" href="https://unpkg.com/codemirror@5.65.16/theme/material-darker.css">
