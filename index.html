@@ -813,47 +813,46 @@
     });
   }
 
-const API_URL = 'AKfycbyWS1jtdicYuUYvW9N8Hh3SRXIud26ubUrfYqhBKx3GMoH6b46VZQJo_qevryBqWadV';
+// Worker endpoint (browser hits this; do not expose APP_SHARED_KEY here)
+// Replace your API constants to target the WORKER
+const PROXY_URL = 'https://dn-proxy.bendupey.workers.dev';
+const API_WITH_ORIGIN = `${PROXY_URL}?origin=${encodeURIComponent(window.location.origin)}`;
+const X_APP_KEY = 'Kifcjugvmnzx!75'; // if you set APP_SHARED_KEY
 
-if (dismissWelcome){
-  dismissWelcome.addEventListener('click', async (e)=>{
-    e.preventDefault();
+dismissWelcome.addEventListener('click', async (e) => {
+  e.preventDefault();
+  const code = (document.getElementById('secretCode')?.value || '').trim();
+  if (!code) { alert('Enter your secret code.'); return; }
 
-    const code = (document.getElementById('secretCode')?.value || '').trim();
-    if (!code){
-      alert('Enter your secret code.');
-      return;
-    }
+  try {
+    const res = await fetch(API_WITH_ORIGIN, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'exchange', code })
+    }).then(r => r.json());
 
-    try {
-      const res = await fetch(API_URL, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ action:'exchange', code })
-      }).then(r=>r.json());
-
-      if (!res.ok){
-        alert("Code not recognized. Check with instructor.");
-        return;
+    if (!res.ok) {
+      if (res.error === 'already_submitted') {
+        alert('⚠️ This code has already been used. Contact your instructor.');
+      } else if (res.error === 'invalid_code') {
+        alert('Code not recognized. Check with instructor.');
+      } else {
+        alert('Sign-in failed. Try again.');
+        console.warn(res);
       }
-
-      // store for later
-      sessionStorage.setItem('dn_code', code);
-      sessionStorage.setItem('dn_code_hash', res.code_hash);
-      window.currentCodeHash = res.code_hash;
-
-      // hide welcome & start
-      welcomeOverlay.style.display='none';
-      await bootstrapPython();
-
-    } catch(err){
-      console.error(err);
-      alert("Network error. Could not reach server.");
+      return; // 🚫 do not admit
     }
-  });
-}
 
-
+    // Admit
+    sessionStorage.setItem('dn_code', res.code);
+    window.currentCodeHash = res.code; // you’re using raw code now
+    welcomeOverlay.style.display = 'none';
+    await bootstrapPython();
+  } catch (err) {
+    console.error(err);
+    alert('Network error. Could not reach server.');
+  }
+});
 
 
   const statusEl = document.getElementById('status');
@@ -1186,13 +1185,6 @@ def display(obj):
   }
 
 
-  // Reset
-  el('resetBtn').addEventListener('click', ()=>{
-    if (confirm('Reset the training? You will lose all progress!')) {
-      window.location.reload();
-    }
-  });
-
 
   // Certificate + download
   function downloadSubmission(){
@@ -1209,9 +1201,11 @@ def display(obj):
   }
   if(downloadSubmitBtn) downloadSubmitBtn.addEventListener('click', downloadSubmission);
   async function submitScore(code, level, score, elapsed_ms) {
-    const res = await fetch("YOUR_SCRIPT_URL", {
+    const res = await fetch(API_WITH_ORIGIN, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {'Content-Type':'text/plain;charset=utf-8',
+        'X-App-Key': X_APP_KEY
+      },
       body: JSON.stringify({
         action: "submit",
         code,
@@ -1223,18 +1217,7 @@ def display(obj):
     return res.json();
   }
 
-  // inside showCertificate(success) after earned is final
-  if (success) {
-    submitScore(window.currentCodeHash, 1, earned, Date.now() - startTs)
-      .then(r => {
-        if (!r.success) {
-          console.warn("Submit failed:", r);
-          alert("⚠️ Could not record your score (" + (r.reason || "error") + ").");
-        } else {
-          console.log("Score submitted!");
-        }
-      });
-  }
+
 
   if(closeCertBtn) closeCertBtn.addEventListener('click', ()=>{ certModal.style.display='none'; });
 
@@ -1245,45 +1228,76 @@ def display(obj):
       ? `You have completed all Data Ninja Level 1 missions with a score of <strong>${earned}/${total}</strong>.<br/>Enter your name to stamp your certificate and download your submission.`
       : `Your ninja training timer has ended. You finished with a score of <strong>${earned}/${total}</strong>.<br/>Enter your name to receive an <em>incomplete</em> certificate and download your submission.`;
     certModal.style.display='flex'; playerNameEl?.focus();
+    // inside showCertificate(success) after earned is final
+    if (success) {
+      submitScore(sessionStorage.getItem('dn_code'), 1, earned, Date.now() - startTs)
+        .then(r => {
+          if (!r.success) {
+            console.warn("Submit failed:", r);
+            alert("⚠️ Could not record your score (" + (r.reason || "error") + ").");
+          } else {
+            console.log("Score submitted!");
+          }
+        });
+    }
   }
+// === Submit score (REPLACE YOUR EXISTING LISTENER WITH THIS) ===
+
 const submitBtn = document.getElementById('submitBtn');
 if (submitBtn){
   submitBtn.addEventListener('click', async ()=>{
-    if (!window.currentCodeHash){
+    const code = sessionStorage.getItem('dn_code');  // raw code stored after exchange
+    if (!code){
       alert('Missing code. Refresh and sign in again.');
       return;
     }
 
+    // Optional “are you sure?” if not all missions completed
+    const total = ORDER.reduce((s,k)=>s+POINTS[k],0);
+    if (earned < total){
+      const ok = confirm(`You have ${earned}/${total} points. Submit anyway?`);
+      if (!ok) return;
+    }
+
     const elapsed = Date.now() - startTs;
-    const payload = {
-      action:'submit',
-      code: sessionStorage.getItem('dn_code'),  // raw for hashing check
-      level: 1,
-      score: earned,
-      elapsed_ms: elapsed
-    };
 
     try {
-      const res = await fetch(API_URL, {
+      const res = await fetch(API_WITH_ORIGIN, {
         method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(payload)
+        headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // NO X-App-Key in browser
+        body: JSON.stringify({
+          action: 'submit',
+          code,              // raw code; Apps Script will accept it
+          level: 1,
+          score: earned,
+          elapsed_ms: elapsed
+        })
       }).then(r=>r.json());
 
       if (res.success){
         alert('✅ Submitted. Nice work!');
         submitBtn.disabled = true;
-      }
-      else if (res.reason === 'already_submitted'){
+      } else if (res.reason === 'already_submitted' || res.error === 'already_submitted'){
         alert('⚠️ Already submitted for Level 1.');
         submitBtn.disabled = true;
-      }
-      else {
+      } else if (res.error === 'invalid_code'){
+        alert('❌ Code not recognized or disabled. Contact instructor.');
+      } else {
         alert('❌ Submit failed. Contact instructor.');
+        console.warn(res);
       }
     } catch (err){
       console.error(err);
       alert('Network error. Try again.');
+    }
+  });
+}
+
+const resetEl = document.getElementById('resetBtn');
+if (resetEl){
+  resetEl.addEventListener('click', ()=>{
+    if (confirm('Reset the training? You will lose all progress!')) {
+      window.location.reload();
     }
   });
 }
