@@ -571,10 +571,21 @@
 <div id="welcomeOverlay">
   <div id="welcomeBox" class="panel">
     <h1>🎌 Welcome, Data Ninja Trainee!</h1>
-    <p>You have <strong>20 minutes</strong> to complete five stealthy missions using official scrolls (docs) and your mind.<br><strong>No LLMs</strong> today — even the wise ChatGPT scroll is sealed.</p>
-    <p>If the timer runs out, you’ll earn an <em>Incomplete Training Scroll</em>. If you press <strong>Reset</strong>, your progress will vanish into the night.</p>
-    <p style="font-size:12px;color:var(--muted)">Tip: pandas & matplotlib documentation are fair game. Honor code applies. 🥷</p>
-    <div id="welcomeActions"><button id="dismissWelcome" class="primary" type="button">Begin Training ▶</button></div>
+    <p>You have <strong>20 minutes</strong> ...</p>
+    <p>If the timer runs out... vanish into the night.</p>
+    <p style="font-size:12px;color:var(--muted)">Tip: pandas & matplotlib...</p>
+
+    <!-- New input field -->
+    <div class="row" style="margin:12px 0">
+      <div style="flex:1">
+        <label for="secretCode">Secret code</label>
+        <input id="secretCode" placeholder="XXXX-XXXX" />
+      </div>
+    </div>
+
+    <div id="welcomeActions">
+      <button id="dismissWelcome" class="primary" type="button">Begin Training ▶</button>
+    </div>
   </div>
 </div>
 
@@ -607,7 +618,7 @@
 
     <!-- Reset + docs row -->
     <div class="status-actions">
-      <button id="resetBtn" class="warn">Reset — You will lose all progress!</button>
+      <button id="submitBtn" class="primary">Submit score</button>
       <div class="docLinks" aria-label="Reference documentation">
         <div class="docs-note">Only these resources are allowed for this assignment:</div>
         <a href="https://pandas.pydata.org/docs/" target="_blank" rel="noopener">pandas docs</a>
@@ -802,14 +813,47 @@
     });
   }
 
+const API_URL = 'AKfycbyWS1jtdicYuUYvW9N8Hh3SRXIud26ubUrfYqhBKx3GMoH6b46VZQJo_qevryBqWadV';
 
-  if (dismissWelcome){
-    dismissWelcome.addEventListener('click', async (e)=>{
-      e.preventDefault();
+if (dismissWelcome){
+  dismissWelcome.addEventListener('click', async (e)=>{
+    e.preventDefault();
+
+    const code = (document.getElementById('secretCode')?.value || '').trim();
+    if (!code){
+      alert('Enter your secret code.');
+      return;
+    }
+
+    try {
+      const res = await fetch(API_URL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ action:'exchange', code })
+      }).then(r=>r.json());
+
+      if (!res.ok){
+        alert("Code not recognized. Check with instructor.");
+        return;
+      }
+
+      // store for later
+      sessionStorage.setItem('dn_code', code);
+      sessionStorage.setItem('dn_code_hash', res.code_hash);
+      window.currentCodeHash = res.code_hash;
+
+      // hide welcome & start
       welcomeOverlay.style.display='none';
       await bootstrapPython();
-    });
-  }
+
+    } catch(err){
+      console.error(err);
+      alert("Network error. Could not reach server.");
+    }
+  });
+}
+
+
 
 
   const statusEl = document.getElementById('status');
@@ -1164,6 +1208,34 @@ def display(obj):
     a.download = `data_ninja_level1_${safe}.json`; a.click(); URL.revokeObjectURL(a.href);
   }
   if(downloadSubmitBtn) downloadSubmitBtn.addEventListener('click', downloadSubmission);
+  async function submitScore(code, level, score, elapsed_ms) {
+    const res = await fetch("YOUR_SCRIPT_URL", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "submit",
+        code,
+        level,
+        score,
+        elapsed_ms
+      })
+    });
+    return res.json();
+  }
+
+  // inside showCertificate(success) after earned is final
+  if (success) {
+    submitScore(window.currentCodeHash, 1, earned, Date.now() - startTs)
+      .then(r => {
+        if (!r.success) {
+          console.warn("Submit failed:", r);
+          alert("⚠️ Could not record your score (" + (r.reason || "error") + ").");
+        } else {
+          console.log("Score submitted!");
+        }
+      });
+  }
+
   if(closeCertBtn) closeCertBtn.addEventListener('click', ()=>{ certModal.style.display='none'; });
 
   function showCertificate(success){
@@ -1174,6 +1246,47 @@ def display(obj):
       : `Your ninja training timer has ended. You finished with a score of <strong>${earned}/${total}</strong>.<br/>Enter your name to receive an <em>incomplete</em> certificate and download your submission.`;
     certModal.style.display='flex'; playerNameEl?.focus();
   }
+const submitBtn = document.getElementById('submitBtn');
+if (submitBtn){
+  submitBtn.addEventListener('click', async ()=>{
+    if (!window.currentCodeHash){
+      alert('Missing code. Refresh and sign in again.');
+      return;
+    }
+
+    const elapsed = Date.now() - startTs;
+    const payload = {
+      action:'submit',
+      code: sessionStorage.getItem('dn_code'),  // raw for hashing check
+      level: 1,
+      score: earned,
+      elapsed_ms: elapsed
+    };
+
+    try {
+      const res = await fetch(API_URL, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload)
+      }).then(r=>r.json());
+
+      if (res.success){
+        alert('✅ Submitted. Nice work!');
+        submitBtn.disabled = true;
+      }
+      else if (res.reason === 'already_submitted'){
+        alert('⚠️ Already submitted for Level 1.');
+        submitBtn.disabled = true;
+      }
+      else {
+        alert('❌ Submit failed. Contact instructor.');
+      }
+    } catch (err){
+      console.error(err);
+      alert('Network error. Try again.');
+    }
+  });
+}
 </script>
 </body>
 </html>
