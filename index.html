@@ -741,20 +741,6 @@
 
 <div class="fx-layer" id="fx-layer"></div>
 
-<div id="certModal">
-  <div id="certBox" class="panel">
-    <h2 id="certTitle">Data Ninja Certificate</h2>
-    <div id="certBody" style="margin-bottom:10px;line-height:1.5"></div>
-    <div class="row" id="nameRow">
-      <div style="flex:1"><label>Your Name</label><input id="playerName" placeholder="Enter your ninja name"/></div>
-    </div>
-    <div class="row" style="margin-top:10px">
-      <button id="downloadSubmitBtn" class="primary">Download Submission</button>
-      <button id="closeCertBtn">Close</button>
-    </div>
-  </div>
-</div>
-
 <script type="module">
   const welcomeOverlay=document.getElementById('welcomeOverlay');
   const dismissWelcome=document.getElementById('dismissWelcome');
@@ -899,7 +885,8 @@ dismissWelcome.addEventListener('click', async (e) => {
   scoreMax.textContent = ORDER.reduce((s,k)=>s+POINTS[k],0);
 
   // Timer — 1 minute
-  const DURATION_MS = 20 * 60 * 1000;
+  // const DURATION_MS = 20 * 60 * 1000;
+  const DURATION_MS = 1 * 60 * 1000; // 1 minute for testing
   let startTs = Date.now();
   let finished=false, expired=false, ticker;
 
@@ -915,11 +902,35 @@ dismissWelcome.addEventListener('click', async (e) => {
     if (remain === 0 && !finished){
       clearInterval(ticker);
       expired = true;
-      showCertificate(false);
+      alert('⏰ Time up!'); 
+      const code = sessionStorage.getItem('dn_code');
+      const elapsed = Date.now() - startTs;
+      if (code) {
+        fetch(API_WITH_ORIGIN, {
+          method:'POST',
+          headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'submit',
+            code,
+            level: 1,
+            score: earned,
+            elapsed_ms: elapsed
+          })
+        }).then(r=>r.json()).then(res=>{
+          if (res.success){
+            alert('⏰ Time up! Score submitted automatically.');
+          } else {
+            alert('⏰ Time up! Could not submit score.');
+            console.warn(res);
+          }
+        }).catch(err=>{
+          console.error(err);
+          alert('⏰ Time up! Network error submitting score.');
+        });
+      }
     }
   }, 250);
 }
-
 
 // Pyodide bootstrap (deferred until user clicks Begin Training)
 let pyodide = null, pythonReady = false;
@@ -1208,26 +1219,15 @@ def display(obj):
     } else if (idx === ORDER.length - 1){
       finished = true;
       if (ticker) clearInterval(ticker);
-      showCertificate(true);
+      alert('🏆 All missions complete!'); 
     }
   }
 
 
 
   // Certificate + download
-  function downloadSubmission(){
-    const name = (playerNameEl?.value || 'anonymous_ninja').trim() || 'anonymous_ninja';
-    const data = {
-      assignment:'data101_pandasquest_v1', version:'3.2',
-      player:{name}, missions:Object.fromEntries(ORDER.map(id=>[id,{passed:passed.has(id),points:POINTS[id]}])),
-      score: earned, completed: !!finished, expired: !!expired, elapsed_ms: (Date.now()-startTs)
-    };
-    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    const safe = name.replace(/[^a-z0-9_-]+/gi,'_') || 'submission';
-    a.download = `data_ninja_level1_${safe}.json`; a.click(); URL.revokeObjectURL(a.href);
-  }
-  if(downloadSubmitBtn) downloadSubmitBtn.addEventListener('click', downloadSubmission);
+
+
   async function submitScore(code, level, score, elapsed_ms) {
     const res = await fetch(API_WITH_ORIGIN, {
       method: "POST",
@@ -1243,32 +1243,6 @@ def display(obj):
     });
     return res.json();
   }
-
-
-
-  if(closeCertBtn) closeCertBtn.addEventListener('click', ()=>{ certModal.style.display='none'; });
-
-  function showCertificate(success){
-    const total = ORDER.reduce((s,k)=>s+POINTS[k],0);
-    certTitle.textContent = success ? '🏆 Data Ninja — Completion Certificate' : '⌛ Data Ninja — Incomplete Certificate';
-    certBody.innerHTML = success
-      ? `You have completed all Data Ninja Level 1 missions with a score of <strong>${earned}/${total}</strong>.<br/>Enter your name to stamp your certificate and download your submission.`
-      : `Your ninja training timer has ended. You finished with a score of <strong>${earned}/${total}</strong>.<br/>Enter your name to receive an <em>incomplete</em> certificate and download your submission.`;
-    certModal.style.display='flex'; playerNameEl?.focus();
-    // inside showCertificate(success) after earned is final
-    if (success) {
-      submitScore(sessionStorage.getItem('dn_code'), 1, earned, Date.now() - startTs)
-        .then(r => {
-          if (!r.success) {
-            console.warn("Submit failed:", r);
-            alert("⚠️ Could not record your score (" + (r.reason || "error") + ").");
-          } else {
-            console.log("Score submitted!");
-          }
-        });
-    }
-  }
-// === Submit score (REPLACE YOUR EXISTING LISTENER WITH THIS) ===
 
 const submitBtn = document.getElementById('submitBtn');
 if (submitBtn){
