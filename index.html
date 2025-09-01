@@ -994,17 +994,7 @@ def display(obj):
     statusEl.textContent = 'Python ready ✔';
 
     // start timer
-    startTs = Date.now();
-    ticker = setInterval(()=>{
-      const remain = Math.max(0, DURATION_MS - (Date.now()-startTs));
-      const s  = Math.floor(remain/1000);
-      const mm = String(Math.floor(s/60)).padStart(2,'0');
-      const ss = String(s%60).padStart(2,'0');
-      if (timerEl) timerEl.textContent = `${mm}:${ss}`;
-      if (remain===0 && !finished){
-        clearInterval(ticker); expired = true; showCertificate(false);
-      }
-    },250);
+    startTimer();
   }catch(e){
     console.error(e);
     statusEl.textContent='Load error';
