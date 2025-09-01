@@ -885,20 +885,27 @@ dismissWelcome.addEventListener('click', async (e) => {
   scoreMax.textContent = ORDER.reduce((s,k)=>s+POINTS[k],0);
 
   // Timer — 1 minute
-  // const DURATION_MS = 20 * 60 * 1000;
-  const DURATION_MS = 1 * 60 * 1000; // 1 minute for testing
+  const DURATION_MS = 20 * 60 * 1000;
+  // const DURATION_MS = 1 * 60 * 1000; // 1 minute for testing
   let startTs = Date.now();
   let finished=false, expired=false, ticker;
 
   function startTimer(){
   if (ticker) clearInterval(ticker);
   startTs = Date.now();
+  let warned5 = false; 
   ticker = setInterval(()=>{
     const remain = Math.max(0, DURATION_MS - (Date.now() - startTs));
     const s  = Math.floor(remain/1000);
     const mm = String(Math.floor(s/60)).padStart(2,'0');
     const ss = String(s%60).padStart(2,'0');
     if (timerEl) timerEl.textContent = `${mm}:${ss}`;
+
+    if (!warned5 && remain <= 5*60*1000 && remain > 4.99*60*1000) {
+      warned5 = true;
+      alert('⚠️ 5 minutes left! Finish up your missions.');
+    }
+
     if (remain === 0 && !finished){
       clearInterval(ticker);
       expired = true;
