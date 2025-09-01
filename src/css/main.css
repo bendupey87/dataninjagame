@@ -1,0 +1,569 @@
+/* main.css
+ * Styles for Data Ninja Game — layout, theme, and components.
+ * Handles dark/light themes, buttons, mission cards, CodeMirror, and general UI.
+ * Usage: <link rel="stylesheet" href="src/css/main.css">
+ */
+ button.ghost{
+    border:1px solid var(--divider); background:transparent; color:var(--ink);
+    padding:3px 8px; border-radius:6px; font-weight:600; opacity:.85;
+  }
+  button.ghost:hover{ opacity:1; border-color:var(--divider-strong); }
+
+  /* ---- 80s Ninja Cartoon Palette (black / red / greys) ---- */
+  :root{ /* DARK */
+    --bg:#0a0a0a; 
+    --panel:#141414; 
+    --panel-elev:#171717;    /* slightly elevated surfaces */
+    --ink:#f2f2f2; 
+    --ink-muted:#bdbdbd;
+    --editor-bg:#121212;
+    --editor-ink:#f1f1f1;
+    --console-bg:#0f0f0f;
+    --console-ink:#e6e6e6;
+    --question-bg:#2f3031;   /* your swatch */
+    --question-bg-light:#373839; /* a hair lighter for summary header contrast */
+
+    --accent:#ff2e2e; 
+    --accent-strong:#ff3f3f; 
+    --accent-soft:#ffd6d6;
+
+    --ok:#35d07f; 
+    --warn:#ffb86c; 
+    --grid:#1e1e1e;
+
+    --divider: rgba(255,46,46,.20);       /* softer dividers */
+    --divider-strong: rgba(255,46,46,.30);
+    --editor-bg:#121212;
+    --editor-ink:#eaeaea;
+    --console-bg:#0f0f0f;
+    --console-ink:#e6e6e6;
+  }
+
+  :root[data-theme="light"]{ /* LIGHT */
+    --bg:#f7f7f9; 
+    --panel:#ffffff; 
+    --panel-elev:#ffffff; 
+    --ink:#1b1b1f; 
+    --ink-muted:#5b5f6a;
+    --editor-bg:#ffffff;
+    --editor-ink:#1b1b1f;
+    --console-bg:#f7f7f9;
+    --console-ink:#1b1b1f;
+
+    --accent:#d10f26; 
+    --accent-strong:#e2182f; 
+    --accent-soft:#7b1020;
+
+    --ok:#198754; 
+    --warn:#b86b00; 
+    --grid:#e6e7ee;
+
+    --divider: rgba(0,0,0,.08);
+    --divider-strong: rgba(0,0,0,.14);
+    --editor-bg:#ffffff;
+    --editor-ink:#1b1b1f;
+    --console-bg:#fafafa;
+    --console-ink:#1b1b1f;
+    --question-bg:#e9eaee;          /* light grey for cards in light mode */
+    --question-bg-light:#f1f2f6;     /* slightly lighter for the summary bar */
+  }
+
+  .statBox{
+    padding:8px 10px;
+    border:1px solid var(--divider-strong);
+    background: var(--panel-elev);
+    color: var(--ink);
+    font-weight:800;
+    border-radius:6px;
+  }
+  .statBox.warn{
+    border-color: var(--warn);
+    color: var(--warn);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
+
+  header{position:sticky;top:0;z-index:1000;display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:2px solid var(--divider-strong);background: var(--panel);box-shadow:0 4px 0 #000}
+  header strong{letter-spacing:.3px}
+  /* Replace the old .pill (it hardcoded a dark bg) */
+  .pill{
+    display:inline-block;
+    font-size:12px;
+    padding:3px 10px;
+    border:2px solid var(--divider-strong);
+    border-radius:4px;
+    background: var(--panel-elev);
+    color: var(--ink-muted);
+    font-weight:700;
+  }
+
+  /* Theme toggle button appears white in light, black in dark */
+  #themeToggle{
+    border:2px solid var(--divider-strong);
+    border-radius:6px;
+    font-weight:700;
+    padding:4px 10px;
+  }
+  :root[data-theme="light"] #themeToggle{ background:#fff; color:#000; }
+  :root[data-theme="dark"]  #themeToggle{ background:#000; color:#fff; }
+
+
+  main{display:grid;grid-template-columns:1fr;gap:12px;padding:12px}
+  .panel{background:var(--panel);border:1px solid var(--divider);border-radius:10px}
+  h2{margin:0 0 8px;color:var(--accent-soft);text-shadow:1px 1px #000;letter-spacing:.2px}
+
+  label{font-size:12px;color:var(--muted)}
+  code{color:var(--accent-soft)}
+
+  /* 2) Reset button: warn style in both themes */
+  #resetBtn{
+    color: var(--accent-strong);
+    border: 2px solid var(--accent-strong);
+    background: transparent;
+  }
+  :root[data-theme="light"] #resetBtn{
+    background: #fff;
+  }
+
+  /* 3) Check button: success style in both themes */
+  button[data-check]{
+    color: var(--ok);
+    border: 2px solid var(--ok);
+    background: transparent;
+    font-weight: 700;
+  }
+  :root[data-theme="light"] button[data-check]{
+    background: #fff;
+  }
+
+  /* (optional) a little hover feedback */
+  button[data-check]:hover{
+    filter: brightness(1.08);
+  }
+  #resetBtn:hover{
+    filter: brightness(1.08);
+  }
+  button.primary{background:var(--accent-strong);color:#110505;border-color:var(--accent-strong)}
+  button:disabled{opacity:.6;cursor:not-allowed}
+
+  textarea{
+    width:100%;
+    min-height:80px;
+    background:var(--editor-bg);
+    color:var(--editor-ink);
+    border:1px solid var(--divider);
+    border-radius:6px;
+    padding:8px;
+    font-family:Consolas,ui-monospace,monospace;
+  }
+
+  /* Console output only (was global pre{}) */
+  pre[id^="out-"]{
+    background:var(--console-bg);
+    color:var(--console-ink);
+    border:1px solid var(--divider);
+    border-radius:6px;
+    padding:8px;
+    min-height:120px;
+    white-space:pre-wrap;
+  }
+
+
+  .missionCard{
+    background: var(--question-bg);
+    border:1px solid var(--divider);
+    border-radius:10px;
+    padding:0;                      /* let summary be the header bar */
+    overflow:hidden;                /* keep rounded corners clean */
+  }
+
+  .missionCard > summary{
+    list-style:none;
+    cursor:pointer;
+    font-weight:800;
+    color:var(--accent-soft);
+    background: var(--question-bg-light);
+    padding:12px 12px;
+    border-bottom:1px solid var(--divider);
+  }
+  /* Triangle reset since we removed list-style */
+  .missionCard > summary::-webkit-details-marker{ display:none; }
+
+  /* Content area inside each card */
+  .missionCard > *:not(summary){
+    padding:12px;
+  }
+
+  /* Keep the “done” state border you already had */
+  .missionCard.done{ border-color: var(--ok); }
+  .missionCard.done{border-color:var(--ok)}
+  details>summary{cursor:pointer;font-weight:800;color:var(--accent-soft)}
+
+  .score{font-weight:800}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .plot{
+    display:none; border:1px dashed color-mix(in oklab, white 12%, transparent);
+    border-radius:6px; margin-top:6px; max-width:100%;
+  }
+  :root[data-theme="light"] .plot{
+    border-color: color-mix(in oklab, black 18%, transparent);
+  }
+  .fx-layer{position:fixed;pointer-events:none;inset:0;z-index:30}
+  .fx{position:absolute;width:12px;height:12px;background:linear-gradient(45deg,#fff,#ffd7d7);box-shadow:0 0 6px #ffb2b2aa;border-radius:2px;opacity:.95;animation:burst 1.2s ease-out forwards}
+  .fx.ninja{width:14px;height:14px;background:#ff9b9b;border-radius:3px}
+  @keyframes burst{from{transform:translateY(0) scale(1)}to{transform:translateY(-140px) translateX(calc(-60px + 120px*var(--r))) scale(.8);opacity:0}}
+
+  #certModal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;z-index:1000}
+  #certBox{width:min(720px,90vw);background:#111;border:3px solid var(--accent);box-shadow:0 20px 60px #000a;border-radius:10px;padding:16px}
+  #certTitle{margin:0 0 8px;color:var(--accent-soft)}
+  #certBody{color:#e9eefb}
+  #nameRow input{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #2a2a2a;background:#151515;color:#e9eefb}
+
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background:linear-gradient(90deg,transparent 31px,var(--grid) 32px),linear-gradient(transparent 31px,var(--grid) 32px);background-size:32px 32px,32px 32px;opacity:.25}
+
+  #welcomeOverlay{position:fixed;inset:0;z-index:1200;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center}
+  #welcomeBox{width:min(760px,92vw);border:3px solid var(--accent-strong);border-radius:12px;padding:20px;background:#141414;box-shadow:0 30px 80px #000;text-align:center}
+  #welcomeBox h1{margin:0 0 6px;color:var(--accent-soft);font-size:28px;text-shadow:2px 2px #000}
+  #welcomeBox p{margin:8px 0;color:#f3f3f3;line-height:1.5}
+  #welcomeActions{margin-top:12px}
+  /* CodeMirror look */
+  .CodeMirror{ height:auto; min-height:120px; border:1px solid var(--divider); border-radius:8px; font-size:14px; }
+  .cm-s-material-darker{ background:#121212; color:#eaeaea; }
+  .cm-s-neo{ background:#ffffff; }
+  .cm-fat-cursor .CodeMirror-cursor{ width:2px; }
+
+  /* CodeMirror – tighter, VS Code-ish */
+  .CodeMirror{
+    font-size:13px;           /* slightly smaller */
+    line-height:1.35;         /* tighter lines */
+    border:1px solid var(--divider);
+    border-radius:8px;
+  }
+
+  .CodeMirror pre{
+    line-height:1.35;
+  }
+
+  /* Make cursor thin, not fat */
+  .CodeMirror-cursor{
+    border-left:1px solid currentColor !important;
+    width:0 !important;
+  }
+
+  /* Dark theme: material-darker; Light theme: neo */
+  .cm-s-material-darker{
+    background: var(--editor-bg) !important;
+    color: var(--editor-ink) !important;
+  }
+
+  .cm-s-neo{
+    background: var(--editor-bg) !important;
+    color: var(--editor-ink) !important;
+  }
+
+  /* Gutter + selection subtle */
+  .CodeMirror-lines{ padding:6px 0 !important; }
+  .CodeMirror-gutters{ padding:6px 0 !important; }
+  .CodeMirror-selected{
+    background: color-mix(in oklab, var(--accent) 22%, transparent) !important;
+  }
+  /* Tighter line height in the editor + matching gutter numbers */
+  .cm-s-material-darker .CodeMirror-line,
+  .cm-s-material-darker .CodeMirror pre,
+  .cm-s-neo .CodeMirror-line,
+  .cm-s-neo .CodeMirror pre,
+  .CodeMirror-linenumber {
+    line-height: 1.22 !important;   /* try 1.18–1.28 to taste */
+  }
+
+  /* Trim the left/right padding inside each line */
+  .CodeMirror pre.CodeMirror-line,
+  .CodeMirror pre.CodeMirror-line-like {
+    padding: 0 6px !important;
+  }
+
+  /* Prevent tall gutter boxes from forcing extra height */
+  .CodeMirror-gutter-elt {
+    height: auto !important;
+  }
+
+  .CodeMirror pre {
+    min-height: 0 !important;
+    white-space: pre !important;
+    margin: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+
+  /* Tighten line height + gutters */
+  .CodeMirror-code{ line-height:1.20 !important; }
+  .cm-s-material-darker .CodeMirror-line,
+  .cm-s-material-darker .CodeMirror pre,
+  .cm-s-neo .CodeMirror-line,
+  .cm-s-neo .CodeMirror pre{
+    line-height:1.20 !important;
+  }
+  .CodeMirror-linenumber{ line-height:1.20 !important; padding:0 6px !important; }
+  .CodeMirror-gutter-elt{ height:auto !important; }
+
+  /* 4) Slim cursor (optional, keeps the caret thin) */
+  .CodeMirror-cursor { border-left: 1px solid currentColor !important; width: 0 !important; }
+
+  /* 5) Scope your wrapping to ONLY the console <pre> elements */
+  pre[id^="out-"] { white-space: pre-wrap; }   /* your output boxes */
+  .CodeMirror { font-size: 12.5px !important; }
+  .missionHeader{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    margin-bottom:6px;
+  }
+
+  .missionText{
+    flex:1;
+    font-size:14px;
+    color:var(--ink);
+  }
+
+  .missionActions button{
+    margin-left:6px;
+  }
+  .nbOut{
+    display:none;
+    overflow:auto;
+    border:1px solid var(--divider);
+    border-radius:8px;
+    background: var(--panel-elev);
+    padding:10px;
+    margin-top:8px;
+  }
+
+  /* Pandas HTML table polish */
+  .nbOut table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  .nbOut th,
+  .nbOut td{
+    padding:6px 8px;
+    border-bottom:1px solid color-mix(in oklab, var(--ink) 10%, transparent);
+  }
+  .nbOut thead th{
+    position:sticky; top:0;
+    background: color-mix(in oklab, var(--panel) 88%, black 12%);
+    text-align:left;
+    font-weight:700;
+  }
+  :root[data-theme="light"] .nbOut thead th{
+    background: color-mix(in oklab, var(--panel) 96%, white 4%);
+  }
+  .nbOut tr:hover td{
+    background: color-mix(in oklab, var(--accent) 6%, transparent);
+  }
+  /* Notebook-style output box */
+  .nb-output{
+    display:none;                      /* stays hidden unless there is output */
+    background: var(--panel-elev);
+    border: 1px solid var(--divider);
+    border-radius: 8px;
+    padding: 10px 12px;
+    overflow:auto;
+    margin-top:10px;
+  }
+
+  /* Pandas HTML table polish */
+  .nb-output table{ width:100%; border-collapse:collapse; font-size:13px; }
+  .nb-output thead th{
+    text-align:left; padding:8px 10px;
+    background: color-mix(in oklab, var(--editor-bg) 85%, black 15%);
+    border-bottom:1px solid var(--divider);
+  }
+  .nb-output tbody td{ padding:8px 10px; border-bottom:1px solid var(--divider); }
+  .nb-output tbody tr:hover{
+    background: color-mix(in oklab, var(--editor-bg) 92%, black 8%);
+  }
+
+  /* (optional) make m1 editor slightly shorter */
+  #card-m1 .CodeMirror{ min-height:96px !important; }
+  :root{
+    /* Adjust if your header gets taller/shorter */
+    --header-offset: 64px;
+  }
+
+  /* Keep the Status card visible as you scroll */
+  #student-panel{
+    position: sticky;
+    top: var(--header-offset);
+    z-index: 800;                 /* sit above page content */
+  }
+  .docLinks{
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .docLinks a{
+    text-decoration: none;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--divider-strong);
+    background: var(--panel-elev);
+    color: var(--ink);
+  }
+
+  .docLinks a:hover{
+    border-color: var(--accent);
+    color: var(--accent-soft);
+  }
+  .status-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+  }
+
+  .docLinks {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .docLinks a {
+    text-decoration: none;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--divider-strong);
+    background: var(--panel-elev);
+    color: var(--ink);
+  }
+  .docLinks a:hover {
+    border-color: var(--accent);
+    color: var(--accent-soft);
+  }
+  #welcomeOverlay { pointer-events: auto; }
+  #welcomeOverlay * { pointer-events: auto; }
+  /* Make the Reset button NOT inherit the global dark background */
+  #resetBtn{
+    background: transparent;
+    color: var(--accent-soft);
+    border: 2px solid var(--accent);
+  }
+
+  /* Optional: in light theme, make it white with strong red text/border */
+  :root[data-theme="light"] #resetBtn{
+    background: #fff;
+    color: var(--accent-strong);
+    border-color: var(--accent-strong);
+  }
+  /* --- Button system ------------------------------------------------------- */
+  :root{
+    --btn-h: 34px;
+    --btn-pad-x: 12px;
+    --btn-radius: 8px;
+  }
+
+  /* Base look for ALL action buttons + doc links */
+  button,
+  .docLinks a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--btn-h);
+    padding: 0 var(--btn-pad-x);
+    border-radius: var(--btn-radius);
+    line-height: 1;                 /* no tall lines */
+    font-weight: 700;
+    cursor: pointer;
+    border: 1.5px solid var(--divider-strong);
+    background: var(--panel-elev);
+    color: var(--ink);
+    transition: transform .02s ease, filter .15s ease, box-shadow .15s ease;
+  }
+  button:active,
+  .docLinks a:active { transform: translateY(1px); }
+
+  /* Theme-specific base tweak for light mode */
+  :root[data-theme="light"] button,
+  :root[data-theme="light"] .docLinks a {
+    background: #fff;
+    color: #1b1b1f;
+  }
+
+  /* Variants (mapped to your existing markup) */
+  button.primary {                      /* Run */
+    background: var(--accent-strong);
+    border-color: var(--accent-strong);
+    color: #110505;
+  }
+
+  button[data-check] {                  /* Check */
+    background: transparent;
+    border-color: var(--ok);
+    color: var(--ok);
+  }
+
+  #resetBtn {                           /* Reset */
+    background: transparent;
+    border-color: var(--accent-strong);
+    color: var(--accent-strong);
+  }
+
+  /* Theme Toggle (white in light, black in dark) */
+  #themeToggle {
+    height: var(--btn-h);
+    padding: 0 var(--btn-pad-x);
+    border: 1.5px solid var(--divider-strong);
+    border-radius: var(--btn-radius);
+    font-weight: 700;
+  }
+  :root[data-theme="light"] #themeToggle{ background:#fff; color:#000; }
+  :root[data-theme="dark"]  #themeToggle{ background:#000; color:#fff; }
+
+  /* Docs row layout + note */
+  .status-actions { align-items: center; } /* already flex; keep centered */
+  .docLinks{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .docLinks .docs-note{
+    font-size:12px; color:var(--ink-muted);
+    margin-right: 6px; white-space: nowrap;
+  }
+  /* Subtle note when a cell runs with no visible output */
+  .no-output{
+    font-size:12px;
+    color:var(--ink-muted);
+    padding:8px 10px;
+    border:1px dashed var(--divider);
+    border-radius:6px;
+    background:var(--panel-elev);
+  }
+  .cm-has-placeholder .CodeMirror-code { opacity: .65; font-style: italic; }
+  #ninjaBanner {
+    display: flex;
+    justify-content: center;   /* center horizontally */
+    align-items: center;
+    padding: 20px 0;
+    background: #000;          /* solid black background */
+    border-bottom: 2px solid var(--divider-strong);
+  }
+
+  #ninjaLogo {
+    height: 180px;  /* adjust size as you like */
+    width: auto;
+  }
+  @keyframes ninjaFade {
+    from { transform: translateX(-50%) scale(0.8); opacity: 0; }
+    to   { transform: translateX(-50%) scale(1);   opacity: 1; }
+  }
+
+  #ninjaLogo {
+    animation: ninjaSlide 0.8s ease-out;
+  }
+  @keyframes ninjaSlide {
+    from { transform: translateX(100px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+  }
