@@ -567,3 +567,20 @@
     from { transform: translateX(100px); opacity: 0; }
     to   { transform: translateX(0); opacity: 1; }
   }
+
+  /* Default (dark mode) */
+#ninjaBanner {
+  background: #111;
+  text-align: center;
+  padding: 24px 0 0 0;
+}
+
+/* Light mode override */
+:root[data-theme="light"] #ninjaBanner {
+  background: #fff;
+}
+
+:root[data-theme="light"] #ninjaBanner {
+  background: #fff;
+  border-bottom: 2px solid #eee;
+}
