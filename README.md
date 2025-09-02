@@ -1,174 +1,90 @@
-# Data Ninja — Level 1
+# Data Ninja Game
 
-Frontend puzzle + secure score submission using **Google Apps Script** (Sheets) behind a **Cloudflare Worker** proxy.
-
-- Frontend: static `index.html` (your game)
-- Backend A: **Apps Script** writes to a Google Sheet (no CORS, no secrets in code)
-- Backend B: **Cloudflare Worker** adds CORS + origin allow-list and (optionally for CLI only) shared key auth
-
-This repo includes source files for both backends so others can reproduce the setup **without** any live secrets.
+**Data Ninja Game** is a browser-based coding puzzle platform for students.  
+It features interactive Python challenges, secure score submission, and a modular frontend built with modern web technologies.
 
 ---
 
-## Repository layout
+## Features
+
+- **Interactive Missions:** Solve Python coding puzzles directly in the browser.
+- **Code Editor:** Powered by [CodeMirror](https://codemirror.net/) with Python syntax highlighting.
+- **Theme Support:** Light/dark mode with persistent user preference.
+- **Secure Score Submission:** Scores and codes are sent to a Google Sheet via Apps Script, protected by a Cloudflare Worker proxy.
+- **No Personal Data:** Only codes and scores are stored—no student names or emails.
+- **Modular Codebase:** Clean separation of HTML, CSS, and JavaScript for easy maintenance and expansion.
+
+---
+
+## File Structure
 
 ```
-/apps-script/Code.gs     # paste into Apps Script editor and deploy as Web App
-/worker/worker.js        # paste into Cloudflare Worker
-/index.html              # your game (calls the Worker URL, never Apps Script directly)
-README.md                # this file
+dataninjagame/
+│
+├── assets/                  # Images and static assets
+├── src/
+│   ├── js/
+│   │   ├── main.js          # Main app logic
+│   │   └── theme.js         # Theme switching logic
+│   └── css/
+│       └── main.css         # Main stylesheet
+├── public/
+│   └── index.html           # Main game page
+├── Code.gs                  # Google Apps Script backend
+├── worker.js                # Cloudflare Worker proxy
+├── answer_key.txt           # Instructor answer key
+├── README.md                # Project documentation
 ```
 
-> ✅ It’s good practice to commit `Code.gs` and `worker.js`.  
-> ❌ Do **not** commit the Apps Script deployment URL (`/exec`) or Worker env values. Keep those as platform secrets/env vars.
-
 ---
 
-## How it works
+## Getting Started
 
-1. Player enters a **secret code** in the welcome screen.
-2. The page calls the **Cloudflare Worker**  
-   `POST /?origin=<window.location.origin> { action:"exchange", code }`
-3. The Worker checks an **Origin allow-list** and forwards JSON to Apps Script (as `text/plain`).
-4. Apps Script checks the **Codes** tab; if valid + unused it returns `{ ok:true, code }`.
-5. When the player finishes, the page calls the Worker again with  
-   `{ action:"submit", code, level, score, elapsed_ms }`.
-6. Apps Script appends a row to **Submissions**:  
-   `code, level, score, elapsed_ms, submitted_at` (prevents duplicates).
-
-No PII is stored — only opaque codes & scores. You keep the private cross-walk elsewhere.
-
----
-
-## Setup
-
-### 1) Google Sheet
-
-- Make a spreadsheet (e.g., **Data Ninja Scores**).
-- Add two tabs:
-  - `Submissions` (empty; script enforces headers automatically)
-  - `Codes` with headers: `code` (A1). Optional `allowed` (B1).
-- Put one **raw** code per row (e.g., `aaa111`, `abc123`). Codes are **case-sensitive**.
-
-### 2) Deploy the Apps Script
-
-1. In the Sheet: **Extensions → Apps Script**.
-2. Replace content with [`apps-script/Code.gs`](apps-script/Code.gs) (below).
-3. **Deploy → New deployment → Web app**  
-   - *Execute as:* Me  
-   - *Who has access:* Anyone
-4. Copy the web app URL (ends in `/exec`). This is your **EXEC_URL** for the Worker.
-
-**POST actions:**
-- `exchange` → validates code; blocks already-used (`already_submitted`).
-- `submit` → appends row; blocks duplicate `code+level`.
-
-### 3) Deploy the Cloudflare Worker
-
-1. Create a Worker (e.g., `dn-proxy.<your>.workers.dev`).
-2. Paste [`worker/worker.js`](worker/worker.js) (below).
-3. In **Settings → Variables** add:
-   - `EXEC_URL` = your Apps Script `/exec` URL
-   - `APP_SHARED_KEY` = random string (only required for CLI/Postman calls from non-allowed origins)
-4. Edit `ALLOWED_ORIGINS` to include your sites:
-   ```js
-   const ALLOWED_ORIGINS = [
-     "http://localhost:3000",
-     "https://bendupey87.github.io",
-     // "https://yourdomain.com"
-   ];
+1. **Clone the repository:**
    ```
-5. Deploy.
+   git clone https://github.com/bendupey87/dataninjagame.git
+   ```
 
-### 4) Frontend wiring
+2. **Open `index.html` in your browser** to play and test locally.
 
-In your `index.html`:
+3. **Set up the backend:**
+   - Deploy `Code.gs` as a Google Apps Script web app linked to your Google Sheet.
+   - Configure `worker.js` in Cloudflare Workers to proxy and protect your Apps Script endpoint.
 
-```js
-const API_URL = 'https://dn-proxy.<your-subdomain>.workers.dev';
-const API_WITH_ORIGIN = `${API_URL}?origin=${encodeURIComponent(window.location.origin)}`;
-
-// exchange
-await fetch(API_WITH_ORIGIN, {
-  method: "POST",
-  headers: {"Content-Type":"text/plain;charset=utf-8"},
-  body: JSON.stringify({ action:"exchange", code })
-}).then(r=>r.json());
-
-// submit
-await fetch(API_WITH_ORIGIN, {
-  method: "POST",
-  headers: {"Content-Type":"text/plain;charset=utf-8"},
-  body: JSON.stringify({ action:"submit", code, level:1, score, elapsed_ms })
-}).then(r=>r.json());
-```
+4. **Customize missions and answer key** as needed for your class.
 
 ---
 
-## Security model
+## Technologies Used
 
-### Controls in place
-- **Origin allow-list (CORS)** in the Worker — only your sites are forwarded.
-- **Codes allow-list** in Sheets (`Codes!A:A`) with optional `allowed` flag.
-- **Re-use protection** — `exchange` blocks codes that already have a submission; `submit` blocks duplicate `code+level`.
-- **No secrets in browser** — the page never sees `EXEC_URL` or the shared key.
-- **No PII stored** — only `code, level, score, elapsed_ms, submitted_at`.
-
-### Risks to consider
-- Apps Script URL is public. If an attacker knows a valid code, they can call it directly.  
-  *Mitigate:* use long random codes; rotate per cohort; keep `ENFORCE_CODES=true`.
-- CORS ≠ auth. The Worker protects browsers; curl/Postman can still hit it.  
-  *Mitigate:* for **non-allowed** origins the Worker requires `X-App-Key` (keep private), plus add CF rate limits.
-- Brute forcing codes.  
-  *Mitigate:* unguessable codes (12–16+ chars), CF rate limiting, optional CAPTCHA.
-
-### Optional hardening
-- Short-lived signed token: Worker mints a JWT on `exchange`; `submit` must include it.
-- Per-code throttling with KV/D1 (block rapid retries per code/IP).
-- Rotate EXEC_URL by redeploying Apps Script if it leaks.
-- Add Turnstile/CAPTCHA to the welcome modal.
+- **HTML5, CSS3, JavaScript (ES6+)**
+- **CodeMirror** for in-browser code editing
+- **Pyodide** for running Python in the browser
+- **Google Apps Script** for backend data storage
+- **Cloudflare Worker** for secure API proxying
 
 ---
 
-## Behaviour reference
+## Security & Privacy
 
-### Apps Script
-- Ensures `Submissions` has headers on first write.
-- `exchange` returns `{ok:true, code}` or `{ok:false, error:...}`  
-- `submit` returns `{success:true}` or `{success:false, error|reason:...}`  
-- Row: `[code, level, score, elapsed_ms, new Date()]`
-
-### Worker
-- Accepts `GET` (health), `OPTIONS` (preflight), `POST` (proxy).
-- Origin from `?origin=` (preferred) or `Origin` header.
-- Allowed origins don’t need `X-App-Key`. Others do (for CLI testing).
+- No personal information is collected or stored.
+- Only codes and scores are submitted and saved.
+- Backend endpoints are protected by origin checks and a shared secret for CLI/API access.
 
 ---
 
-## CLI tests (optional)
+## Contributing
 
-```powershell
-$u = "https://dn-proxy.<your>.workers.dev?origin=http://localhost:3000"
-$h = @{
-  "Content-Type" = "text/plain;charset=utf-8"
-  "X-App-Key"    = "<APP_SHARED_KEY>"
-  "Origin"       = "http://localhost:3000"
-}
-(iwr -Method POST -Uri $u -Headers $h -Body '{ "action":"exchange", "code":"abc123" }').Content
-(iwr -Method POST -Uri $u -Headers $h -Body '{ "action":"submit", "code":"abc123", "level":1, "score":7, "elapsed_ms":12345 }').Content
-```
-
----
-
-## Troubleshooting
-
-- **CORS error** → add your site to `ALLOWED_ORIGINS` **and** send `?origin=<window.location.origin>`.
-- **`config_missing: EXEC_URL`** → set Worker env var.
-- **`unauthorized` from CLI** → include `X-App-Key` that matches Worker’s `APP_SHARED_KEY`.
-- **`invalid_code`** → ensure exact raw code exists in `Codes!A:A` and `allowed` isn’t false.
-- **Duplicate block** → clear prior row in `Submissions` for test re-use.
+Pull requests and suggestions are welcome!  
+Feel free to fork and adapt for your own classroom or coding challenges.
 
 ---
 
 ## License
-MIT
+
+MIT License (or specify your preferred license here).
+
+---
+
+**Questions or feedback?**  
+Open an issue or contact [bendupey87](https://github.com/bendupey87)

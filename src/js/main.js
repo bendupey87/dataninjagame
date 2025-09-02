@@ -9,7 +9,6 @@ const welcomeOverlay=document.getElementById('welcomeOverlay');
   const dismissWelcome=document.getElementById('dismissWelcome');
   // --- CodeMirror editors ---
   const editors = {}; // id -> CodeMirror instance
-
   function initEditors(){
     const TODO = '#TODO: YOUR CODE HERE\n';
 
@@ -35,29 +34,33 @@ const welcomeOverlay=document.getElementById('welcomeOverlay');
         cm.setValue(TODO);
         hasPlaceholder = true;
         cm.getWrapperElement().classList.add('cm-has-placeholder');
-        // put caret at start so typing replaces from the beginning
         cm.setCursor({line:0, ch:0});
       }
 
-      // First real keystroke clears the placeholder
+      // Remove placeholder on focus
+      cm.on('focus', (_cm) => {
+        if (hasPlaceholder && _cm.getValue() === TODO) {
+          hasPlaceholder = false;
+          _cm.getWrapperElement().classList.remove('cm-has-placeholder');
+          _cm.setValue('');
+        }
+      });
+
+      // First real keystroke clears the placeholder (keep this for fallback)
       cm.on('keydown', (_cm, e) => {
         if (!hasPlaceholder) return;
-        // ignore navigation keys
         const navKeys = ['Shift','Alt','Control','Meta','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Tab','CapsLock'];
         if (navKeys.includes(e.key)) return;
 
         if (_cm.getValue() === TODO) {
           hasPlaceholder = false;
           _cm.getWrapperElement().classList.remove('cm-has-placeholder');
-          _cm.setValue('');               // wipe TODO
-          // allow the key they just pressed to insert normally
+          _cm.setValue('');
         }
       });
-
       editors[id] = cm;
     });
   }
-
 
   function getCode(id){ return editors[id] ? editors[id].getValue() : (document.getElementById(`code-${id}`)?.value || ''); }
   function setEditorTheme(mode){
@@ -538,6 +541,7 @@ if (submitBtn){
       if (res.success){
         alert('✅ Submitted. Nice work!');
         submitBtn.disabled = true;
+        if (ticker) clearInterval(ticker);
       } else if (res.reason === 'already_submitted' || res.error === 'already_submitted'){
         alert('⚠️ Already submitted for Level 1.');
         submitBtn.disabled = true;
